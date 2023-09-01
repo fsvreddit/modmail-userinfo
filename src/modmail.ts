@@ -62,7 +62,7 @@ export async function createUserSummaryModmail(context: Context, user: User, sub
                 if (foundCommentCount == 0)
                 modmailMessage += "**Recently removed comments**:\r\n\r\n"
 
-                modmailMessage += `[${comment.createdAt.toLocaleString(locale)}](${comment.permalink}):\r\n\r\n`
+                modmailMessage += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink}):\r\n\r\n`
                 modmailMessage += `> ${comment.body}\r\n\r\n`;
 
                 foundCommentCount++;
@@ -96,7 +96,7 @@ export async function createUserSummaryModmail(context: Context, user: User, sub
                     modnote += note.text;
                 }
 
-                modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleString(locale)}`;
+                modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale)}`;
 
                 modmailMessage += `* ${modnote}\r\n`;
             }
