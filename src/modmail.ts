@@ -6,15 +6,15 @@ import { formatAccountAgeForDisplay } from './utility.js';
 export async function createUserSummaryModmail(context: Context, user: User, subredditName: string): Promise<string>
 {
     console.log("About to create summary modmail");
-    var modmailMessage = `Possible relevant information for ${user.username}:\r\n\r\n`;
+    var modmailMessage = `Possible relevant information for ${user.username}:\n\n`;
 
     const accountAge = Math.round(Math.abs(new Date().getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24));
-    modmailMessage += `**Age**: ${formatAccountAgeForDisplay(accountAge)}\r\n\r\n`;
+    modmailMessage += `**Age**: ${formatAccountAgeForDisplay(accountAge)}\n\n`;
 
-    modmailMessage += `**Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\r\n\r\n`;
+    modmailMessage += `**Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
 
     if (user.nsfw)
-        modmailMessage += "**NSFW Account**: Yes\r\n\r\n";
+        modmailMessage += "**NSFW Account**: Yes\n\n";
 
     const userComments = await user.getComments({
         sort: "new",
@@ -36,12 +36,12 @@ export async function createUserSummaryModmail(context: Context, user: User, sub
 
     if (commentList.size > 0)
     {
-        modmailMessage += "**Recent Comments**:\r\n\r\n";
+        modmailMessage += "**Recent Comments**:\n\n";
         for (const item of commentList)
         {
-            modmailMessage += `* /r/${item[0]}: ${item[1]}\r\n`;
+            modmailMessage += `* /r/${item[0]}: ${item[1]}\n`;
         }
-        modmailMessage += "\r\n";
+        modmailMessage += "\n";
     }
 
     var locale = await context.settings.get('localeForDateOutput') as string | undefined;
@@ -60,17 +60,17 @@ export async function createUserSummaryModmail(context: Context, user: User, sub
             if (foundCommentCount < numberOfRemovedCommentsToInclude)
             {
                 if (foundCommentCount == 0)
-                modmailMessage += "**Recently removed comments**:\r\n\r\n"
+                modmailMessage += "**Recently removed comments**:\n\n"
 
-                modmailMessage += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink}):\r\n\r\n`
-                modmailMessage += `> ${comment.body}\r\n\r\n`;
+                modmailMessage += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink}):\n\n`
+                modmailMessage += `> ${comment.body.split("\n\n").join("\n\n> ")}\n\n`; // string.replaceAll not available without es2021
 
                 foundCommentCount++;
             }
         }
 
         if (foundCommentCount > 0)
-        modmailMessage += "---\r\n\r\n";
+        modmailMessage += "---\n\n";
     }
 
     const shouldIncludeUsernotes = await context.settings.get('includeToolboxNotes') as boolean | undefined;
@@ -80,7 +80,7 @@ export async function createUserSummaryModmail(context: Context, user: User, sub
         var userNotes = await toolbox.getUsernotesOnUser(subredditName, user.username);
         if (userNotes && userNotes.length > 0)
         {
-            modmailMessage += "**Toolbox Usernotes**:\r\n\r\n";
+            modmailMessage += "**Toolbox Usernotes**:\n\n";
             for (const note of userNotes)        
             {
                 var modnote = "";
@@ -98,9 +98,9 @@ export async function createUserSummaryModmail(context: Context, user: User, sub
 
                 modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale)}`;
 
-                modmailMessage += `* ${modnote}\r\n`;
+                modmailMessage += `* ${modnote}\n`;
             }
-            modmailMessage += "\r\n";
+            modmailMessage += "\n";
         }
     }
       
