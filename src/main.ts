@@ -27,6 +27,13 @@ Devvit.addSettings([
     defaultValue: false
   },
   {
+    type: 'string',
+    name: 'usernamesToIgnore',
+    label: 'Do not create summaries for these users',
+    helpText: 'Comma-separated, not case sensitive',
+    defaultValue: 'Automoderator,ModSupportBot'
+  },
+  {
     type: 'select',
     name: 'localeForDateOutput',
     label: 'Format for date output',
@@ -58,6 +65,17 @@ Devvit.addTrigger({
 
     const user = await context.reddit.getUserById(event.messageAuthor.id);
     const subReddit = await context.reddit.getSubredditById(context.subredditId);
+
+    const usersToIgnore = await context.settings.get('usernamesToIgnore') as string | undefined;
+    if (usersToIgnore)
+    {
+      const userList = usersToIgnore.split(',');
+      if (userList.find(x => x.trim().toLowerCase() == user.username.toLowerCase()))
+      {
+        console.log(`User /u/${user.username} is on the ignore list, skipping`);
+        return;
+      }
+    }
 
     const userIsMod = await isMod(subReddit, user.username)
     const createSummaryForModerators = await context.settings.get('createSummaryForModerators') as boolean | undefined;
