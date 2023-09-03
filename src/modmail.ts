@@ -1,15 +1,14 @@
-import { Context, User } from '@devvit/public-api';
+import { TriggerContext, User } from '@devvit/public-api';
+import { formatDistance } from 'date-fns';
 import { ToolboxClient } from 'toolbox-devvit';
-import { formatAccountAgeForDisplay } from './utility.js';
 
 
-export async function createUserSummaryModmail(context: Context, user: User, subredditName: string): Promise<string>
+export async function createUserSummaryModmail(context: TriggerContext, user: User, subredditName: string): Promise<string>
 {
     console.log("About to create summary modmail");
     var modmailMessage = `Possible relevant information for ${user.username}:\n\n`;
 
-    const accountAge = Math.round(Math.abs(new Date().getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24));
-    modmailMessage += `**Age**: ${formatAccountAgeForDisplay(accountAge)}\n\n`;
+    modmailMessage += `**Age**: ${formatDistance(user.createdAt, new Date())}\n\n`
 
     modmailMessage += `**Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
 
