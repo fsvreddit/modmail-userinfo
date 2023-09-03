@@ -1,5 +1,5 @@
 import { TriggerContext, User } from '@devvit/public-api';
-import { formatDistance } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ToolboxClient } from 'toolbox-devvit';
 
 
@@ -8,7 +8,7 @@ export async function createUserSummaryModmail(context: TriggerContext, user: Us
     console.log("About to create summary modmail");
     var modmailMessage = `Possible relevant information for ${user.username}:\n\n`;
 
-    modmailMessage += `**Age**: ${formatDistance(user.createdAt, new Date())}\n\n`
+    modmailMessage += `**Age**: ${formatDistanceToNow(user.createdAt)}\n\n`
 
     modmailMessage += `**Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
 
