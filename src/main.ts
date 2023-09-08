@@ -65,21 +65,26 @@ Devvit.addTrigger({
   event: 'ModMail',
   async onEvent(event, context) {
 
-    console.log(`Received modmail trigger event:\n${JSON.stringify(event)}`);
+    console.log(`Received modmail trigger event.`);
 
     var conversationResponse = await context.reddit.modMail.getConversation({
       conversationId: event.conversationId
     });
 
-    if (conversationResponse.conversation == undefined)
+    if (!conversationResponse.conversation)
       return;
 
+    // Ensure that we are responding to the first message in the chain - only want to create a summary once.
     if (!conversationResponse.conversation.numMessages || conversationResponse.conversation.numMessages > 1)
       return;
 
+    // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion
     if (!conversationResponse.conversation.participant || !conversationResponse.conversation.participant.name)
+    {
+      console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
       return;
-    
+    }
+
     // Check to see if conversation is already archived e.g. from a ban message
     var conversationIsArchived = (conversationResponse.conversation.state == ModMailConversationState.Archived);
 
