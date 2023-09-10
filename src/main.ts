@@ -1,5 +1,4 @@
-import { Devvit } from '@devvit/public-api';
-import { isMod } from './utility.js';
+import { Devvit, ModMailConversationState, User } from '@devvit/public-api';
 import { createUserSummaryModmail } from './modmail.js';
 
 Devvit.addSettings([
@@ -7,8 +6,21 @@ Devvit.addSettings([
     type: 'boolean',
     name: 'includeToolboxNotes',
     label: 'Include Toolbox usernotes in Modmail User Summary',
-    helpText: 'If you do not use Toolbox usernotes, or have migrated away from them, including them in the modmail summary may be misleading.'
+    helpText: 'If you do not use Toolbox usernotes, or have migrated away from them, including them in the modmail summary may be misleading.',
+    defaultValue: false
   },
+  {
+    type: 'number',
+    name: 'numberOfSubsToIncludeInSummary',
+    label: 'Number of subreddits to include in comment summary',
+    helpText: 'Limit the number of subreddits listed to this number. If a user participates in lots of subreddits, a large number might be distracting',
+    defaultValue: 10,
+    onValidate: async ({ value }) => {
+      if (!value || value < 0 || value > 100) {
+        return 'Value must be between 0 and 100';
+      }
+    }
+  },  
   {
     type: 'number',
     name: 'numberOfCommentsToInclude',
@@ -41,7 +53,11 @@ Devvit.addSettings([
       {value: "en-GB", label: "date/month/year"},
       {value: "en-US", label: "month/date/year"},
       {value: "ja-JP", label: "year/month/date"}
-    ]    
+    ],
+    onValidate: async ({ value }) => {
+      if (!value)
+        "You must select a date format"
+    }
   }
 ]);
 
@@ -49,54 +65,72 @@ Devvit.addTrigger({
   event: 'ModMail',
   async onEvent(event, context) {
 
-    console.log(`Received modmail trigger event:\n${JSON.stringify(event)}`);
+    console.log(`Received modmail trigger event.`);
 
     var conversationResponse = await context.reddit.modMail.getConversation({
       conversationId: event.conversationId
     });
 
-    if (conversationResponse.conversation == undefined)
+    if (!conversationResponse.conversation)
       return;
+
+    // Ensure that we are responding to the first message in the chain - only want to create a summary once.
     if (!conversationResponse.conversation.numMessages || conversationResponse.conversation.numMessages > 1)
       return;
-    
-    if (!event.messageAuthor)
-      return;
 
-    const user = await context.reddit.getUserById(event.messageAuthor.id);
+    // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion
+    if (!conversationResponse.conversation.participant || !conversationResponse.conversation.participant.name)
+    {
+      console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
+      return;
+    }
+
+    // Check to see if conversation is already archived e.g. from a ban message
+    var conversationIsArchived = (conversationResponse.conversation.state == ModMailConversationState.Archived);
+
+    // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
+    const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
     const subReddit = await context.reddit.getSubredditById(context.subredditId);
 
-    const usersToIgnore = await context.settings.get('usernamesToIgnore') as string | undefined;
+    // Check if user is on the ignore list.
+    const usersToIgnore = await context.settings.get<string>('usernamesToIgnore');
     if (usersToIgnore)
     {
       const userList = usersToIgnore.split(',');
-      if (userList.find(x => x.trim().toLowerCase() == user.username.toLowerCase()))
+      if (userList.some(x => x.trim().toLowerCase() == user.username.toLowerCase()))
       {
         console.log(`User /u/${user.username} is on the ignore list, skipping`);
         return;
       }
     }
 
-    const userIsMod = await isMod(subReddit, user.username)
-    const createSummaryForModerators = await context.settings.get('createSummaryForModerators') as boolean | undefined;
-    if (userIsMod && !createSummaryForModerators)
+    // Check if user is a mod, and if app is configured to send summaries for mods
+    const createSummaryForModerators = await context.settings.get<boolean>('createSummaryForModerators');
+    if (conversationResponse.conversation.participant.isMod && !createSummaryForModerators)
     {
         console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
         return;
     }
 
-    var modmailMessage = await createUserSummaryModmail(context, user, subReddit.name);
+    // All checks passed. Retrieve text for modmail summary.
+    const modmailMessage = await createUserSummaryModmail(context, user, subReddit.name);
 
     await context.reddit.modMail.reply({
       body: modmailMessage,
       conversationId: event.conversationId,
       isInternal: true
     });
+
+    // If conversation was previously archived (e.g. a ban) archive it again.
+    if (conversationIsArchived)
+    {
+      await context.reddit.modMail.archiveConversation(event.conversationId);
+    }
   }
 });
 
 Devvit.configure({
   redditAPI: true
-})
+});
 
 export default Devvit;
