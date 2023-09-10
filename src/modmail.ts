@@ -79,7 +79,7 @@ export async function createUserSummaryModmail(context: TriggerContext, user: Us
             for (const comment of filteredComments)
             {
                 modmailMessage += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink}):\n\n`
-                modmailMessage += `> ${comment.body.split("\n\n").join("\n\n> ")}\n\n`; // string.replaceAll not available without es2021
+                modmailMessage += `> ${comment.body.split("\n").join("\n> ")}\n\n`; // string.replaceAll not available without es2021
             }
 
             modmailMessage += "---\n\n";
