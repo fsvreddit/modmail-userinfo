@@ -20,7 +20,17 @@ Devvit.addSettings([
         return 'Value must be between 0 and 100';
       }
     }
-  },  
+  },
+  {
+    type: 'select',
+    name: 'subHistoryDisplayStyle',
+    label: 'Output style for subreddit history',
+    options: [
+      { label: 'Bulleted list (one subreddit per line)', value: 'bullet'},
+      { label: 'Single paragraph (all subreddits on one line - more compact)', value: 'singlepara'},
+    ],
+    multiSelect: false,
+  },
   {
     type: 'number',
     name: 'numberOfCommentsToInclude',
@@ -54,6 +64,7 @@ Devvit.addSettings([
       {value: "en-US", label: "month/date/year"},
       {value: "ja-JP", label: "year/month/date"}
     ],
+    multiSelect: false,
     onValidate: async ({ value }) => {
       if (!value)
         "You must select a date format"

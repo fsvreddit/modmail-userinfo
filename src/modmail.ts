@@ -6,7 +6,7 @@ import { ToolboxClient } from 'toolbox-devvit';
 export async function createUserSummaryModmail(context: TriggerContext, user: User, subredditName: string): Promise<string>
 {
     console.log("About to create summary modmail");
-    var modmailMessage = `Possible relevant information for ${user.username}:\n\n`;
+    var modmailMessage = `Possible relevant information for /u/${user.username}:\n\n`;
 
     modmailMessage += `**Age**: ${formatDistanceToNow(user.createdAt)}\n\n`
 
@@ -50,12 +50,26 @@ export async function createUserSummaryModmail(context: TriggerContext, user: Us
 
     if (commentList.length > 0)
     {
-        modmailMessage += "**Recent Comments**:\n\n";
+        const subHistoryDisplayStyle = await context.settings.get<string>('subHistoryDisplayStyle') ?? 'bullet';
+        modmailMessage += "**Recent Comments**: ";
+        if (subHistoryDisplayStyle == 'bullet') {
+            modmailMessage += "\n\n";
+        }
+        
         for (const item of commentList)
         {
-            modmailMessage += `* /r/${item.subName}: ${item.commentCount}\n`;
+            if (subHistoryDisplayStyle == 'bullet') {
+                modmailMessage += `* /r/${item.subName}: ${item.commentCount}\n`;
+            } else {
+                modmailMessage += `/r/${item.subName} (${item.commentCount}), `;
+            }
         }
-        modmailMessage += "\n";
+        if (subHistoryDisplayStyle == 'bullet') {
+            modmailMessage += "\n";
+        } else {
+            // Remove trailing comma, add newlines
+            modmailMessage = modmailMessage.substring(0, modmailMessage.length - 2) + "\n\n";
+        }
     }
 
     var locale = await context.settings.get<string>('localeForDateOutput');
