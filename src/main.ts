@@ -4,6 +4,13 @@ import {createUserSummaryModmail} from "./modmail.js";
 Devvit.addSettings([
     {
         type: "boolean",
+        name: "includeNativeNotes",
+        label: "Include native Reddit user notes in Modmail User Summary",
+        helpText: "If you do not use Reddit's native usernotes, including them may be misleading.",
+        defaultValue: false,
+    },
+    {
+        type: "boolean",
         name: "includeToolboxNotes",
         label: "Include Toolbox usernotes in Modmail User Summary",
         helpText: "If you do not use Toolbox usernotes, or have migrated away from them, including them in the modmail summary may be misleading.",

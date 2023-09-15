@@ -1,4 +1,4 @@
-import {TriggerContext, User} from "@devvit/public-api";
+import {Comment, ModNote, Post, TriggerContext, User} from "@devvit/public-api";
 import {formatDistanceToNow} from "date-fns";
 import {ToolboxClient} from "toolbox-devvit";
 
@@ -85,8 +85,56 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         }
     }
 
-    const shouldIncludeUsernotes = await context.settings.get<boolean>("includeToolboxNotes");
-    if (shouldIncludeUsernotes) {
+    const shouldIncludeNativeUsernotes = await context.settings.get<boolean>("includeNativeNotes");
+    if (shouldIncludeNativeUsernotes) {
+        let modNotes: ModNote[] | undefined;
+        console.log("Getting native notes");
+        try {
+            modNotes = await context.reddit.getModNotes({
+                subreddit: subredditName,
+                user: user.username,
+                filter: "NOTE",
+            }).all();
+        } catch (error) {
+            console.log(error); // Currently, this may crash if there are any notes without a permalink
+            modmailMessage += "**Reddit user notes**: Unable to retrieve user notes";
+        }
+
+        console.log("Got native usernotes");
+
+        if (modNotes && modNotes.length > 0) {
+            modmailMessage += "**Reddit user notes**:\n\n";
+
+            for (const note of modNotes.filter(note => note.userNote)) {
+                console.log(note);
+                if (!note.userNote || !note.userNote.note) {
+                    continue;
+                }
+
+                let noteText = "";
+                const labelText = getRedditNoteTypeFromEnum(note.userNote.label);
+                if (labelText && labelText !== "") {
+                    noteText = `[${labelText}] `;
+                }
+
+                const noteTarget = await getPostOrCommentFromRedditId(context, note.userNote.redditId);
+                if (noteTarget) {
+                    noteText += `[${note.userNote.note}](${noteTarget.permalink})`;
+                } else {
+                    noteText += note.userNote.note;
+                }
+
+                noteText += ` by ${note.operator.name ?? "unknown"} on ${note.createdAt.toLocaleDateString(locale)}`;
+                console.log(noteText);
+
+                modmailMessage += `* ${noteText}\n`;
+            }
+            modmailMessage += "\n";
+        }
+    }
+
+    const shouldIncludeToolboxUsernotes = await context.settings.get<boolean>("includeToolboxNotes");
+    if (shouldIncludeToolboxUsernotes) {
         const toolbox = new ToolboxClient(context.reddit);
         try {
             const userNotes = await toolbox.getUsernotesOnUser(subredditName, user.username);
@@ -94,8 +142,9 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
                 modmailMessage += "**Toolbox Usernotes**:\n\n";
                 for (const note of userNotes) {
                     let modnote = "";
-                    if (note.noteType && note.noteType !== "") {
-                        modnote += `[${note.noteType}] `;
+                    const noteType = getToolboxNoteTypeFromEnum(note.noteType);
+                    if (noteType) {
+                        modnote += `[${noteType}] `;
                     }
 
                     if (note.contextPermalink && note.contextPermalink !== "") {
@@ -118,4 +167,48 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     console.log(modmailMessage);
 
     return modmailMessage;
+}
+
+function getRedditNoteTypeFromEnum (noteType: string | undefined): string | undefined {
+    const noteTypes = [
+        {key: "HELPFUL_USER", text: "Helpful"},
+        {key: "SOLID_CONTRIBUTOR", text: "Solid Contributor"},
+        {key: "SPAM_WATCH", text: "Spam Watch"},
+        {key: "ABUSE_WARNING", text: "Abuse Warning"},
+        {key: "SPAM_WARNING", text: "Spam Warning"},
+    ];
+
+    const result = noteTypes.find(x => x.key === noteType);
+    if (result) {
+        return result.text;
+    }
+}
+
+function getToolboxNoteTypeFromEnum (noteType: string | undefined): string | undefined {
+    const noteTypes = [
+        {key: "gooduser", text: "Good Contributor"},
+        {key: "spamwatch", text: "Spam Watch"},
+        {key: "spamwarn", text: "Spam Warning"},
+        {key: "abusewarn", text: "Abuse Warning"},
+        {key: "ban", text: "Ban"},
+        {key: "permban", text: "Permanent Ban"},
+        {key: "botban", text: "Bot Ban"},
+    ];
+
+    const result = noteTypes.find(x => x.key === noteType);
+    if (result) {
+        return result.text;
+    }
+}
+
+async function getPostOrCommentFromRedditId (context: TriggerContext, redditId: `t5_${string}` | `t1_${string}` | `t3_${string}` | undefined): Promise <Post | Comment | undefined> {
+    if (!redditId || redditId.startsWith("t5")) {
+        return;
+    } else if (redditId.startsWith("t1")) {
+        // Comment
+        return context.reddit.getCommentById(redditId);
+    } else if (redditId.startsWith("t3")) {
+        // Post
+        return context.reddit.getPostById(redditId);
+    }
 }
