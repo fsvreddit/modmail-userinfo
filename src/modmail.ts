@@ -171,11 +171,14 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
 function getRedditNoteTypeFromEnum (noteType: string | undefined): string | undefined {
     const noteTypes = [
-        {key: "HELPFUL_USER", text: "Helpful"},
-        {key: "SOLID_CONTRIBUTOR", text: "Solid Contributor"},
-        {key: "SPAM_WATCH", text: "Spam Watch"},
+        {key: "BOT_BAN", text: "Bot Ban"},
+        {key: "PERMA_BAN", text: "Permaban"},
+        {key: "BAN", text: "Ban"},
         {key: "ABUSE_WARNING", text: "Abuse Warning"},
         {key: "SPAM_WARNING", text: "Spam Warning"},
+        {key: "SPAM_WATCH", text: "Spam Watch"},
+        {key: "SOLID_CONTRIBUTOR", text: "Solid Contributor"},
+        {key: "HELPFUL_USER", text: "Helpful"},
     ];
 
     const result = noteTypes.find(x => x.key === noteType);
