@@ -3,7 +3,7 @@ import {formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
 
 interface CombinedUserNote extends Usernote {
-    type: "Reddit" | "Toolbox"
+    noteSource: "Reddit" | "Toolbox"
 }
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
@@ -132,8 +132,8 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
             modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale)}`;
 
             if (shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes) {
-                // Include whether these are Toolbox or Native notes
-                modnote += ` (${note.type})`;
+                // Include whether these are Toolbox or Native notes, if both are configured.
+                modnote += ` (${note.noteSource})`;
             }
 
             modmailMessage += `* ${modnote}\n`;
@@ -202,7 +202,7 @@ async function getUserNoteFromRedditModNote (reddit: RedditAPIClient, modNote: M
     const noteTarget = await getPostOrCommentFromRedditId(reddit, modNote.userNote.redditId);
 
     return {
-        type: "Reddit",
+        noteSource: "Reddit",
         moderatorUsername: modNote.operator.name ?? "unknown",
         text: modNote.userNote.note,
         timestamp: modNote.createdAt,
@@ -231,7 +231,7 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
 
 async function getUserNoteFromToolboxUserNote (userNote: Usernote): Promise<CombinedUserNote> {
     return {
-        type: "Toolbox",
+        noteSource: "Toolbox",
         moderatorUsername: userNote.moderatorUsername,
         text: userNote.text,
         timestamp: userNote.timestamp,
