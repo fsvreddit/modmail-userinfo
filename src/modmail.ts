@@ -8,7 +8,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
     modmailMessage += `**Age**: ${formatDistanceToNow(user.createdAt)}\n\n`;
 
-    modmailMessage += `**Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
+    modmailMessage += `**Sitewide Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
 
     if (user.nsfw) {
         modmailMessage += "**NSFW Account**: Yes\n\n";
