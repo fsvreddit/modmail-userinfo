@@ -1,6 +1,10 @@
-import {Comment, ModNote, Post, TriggerContext, User} from "@devvit/public-api";
+import {Comment, ModNote, Post, RedditAPIClient, TriggerContext, User} from "@devvit/public-api";
 import {formatDistanceToNow} from "date-fns";
-import {ToolboxClient} from "toolbox-devvit";
+import {ToolboxClient, Usernote} from "toolbox-devvit";
+
+interface CombinedUserNote extends Usernote {
+    type: "Reddit" | "Toolbox"
+}
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
     console.log("About to create summary modmail");
@@ -85,83 +89,56 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         }
     }
 
+    const combinedNotesRetriever: Promise<(CombinedUserNote | undefined)[]>[] = [];
+
     const shouldIncludeNativeUsernotes = await context.settings.get<boolean>("includeNativeNotes");
     if (shouldIncludeNativeUsernotes) {
-        let modNotes: ModNote[] | undefined;
-        console.log("Getting native notes");
-        try {
-            modNotes = await context.reddit.getModNotes({
-                subreddit: subredditName,
-                user: user.username,
-                filter: "NOTE",
-            }).all();
-        } catch (error) {
-            console.log(error); // Currently, this may crash if there are any notes without a permalink
-            modmailMessage += "**Reddit user notes**: Unable to retrieve user notes";
-        }
-
-        console.log("Got native usernotes");
-
-        if (modNotes && modNotes.length > 0) {
-            modmailMessage += "**Reddit user notes**:\n\n";
-
-            for (const note of modNotes.filter(note => note.userNote)) {
-                console.log(note);
-                if (!note.userNote || !note.userNote.note) {
-                    continue;
-                }
-
-                let noteText = "";
-                const labelText = getRedditNoteTypeFromEnum(note.userNote.label);
-                if (labelText && labelText !== "") {
-                    noteText = `[${labelText}] `;
-                }
-
-                const noteTarget = await getPostOrCommentFromRedditId(context, note.userNote.redditId);
-                if (noteTarget) {
-                    noteText += `[${note.userNote.note}](${noteTarget.permalink})`;
-                } else {
-                    noteText += note.userNote.note;
-                }
-
-                noteText += ` by ${note.operator.name ?? "unknown"} on ${note.createdAt.toLocaleDateString(locale)}`;
-                console.log(noteText);
-
-                modmailMessage += `* ${noteText}\n`;
-            }
-            modmailMessage += "\n";
-        }
+        combinedNotesRetriever.push(getRedditModNotesAsUserNotes(context.reddit, subredditName, user.username));
     }
 
     const shouldIncludeToolboxUsernotes = await context.settings.get<boolean>("includeToolboxNotes");
-    if (shouldIncludeToolboxUsernotes) {
-        const toolbox = new ToolboxClient(context.reddit);
-        try {
-            const userNotes = await toolbox.getUsernotesOnUser(subredditName, user.username);
-            if (userNotes.length > 0) {
-                modmailMessage += "**Toolbox Usernotes**:\n\n";
-                for (const note of userNotes) {
-                    let modnote = "";
-                    const noteType = getToolboxNoteTypeFromEnum(note.noteType);
-                    if (noteType) {
-                        modnote += `[${noteType}] `;
-                    }
+    if (shouldIncludeNativeUsernotes) {
+        combinedNotesRetriever.push(getToolboxNotesAsUserNotes(context.reddit, subredditName, user.username));
+    }
 
-                    if (note.contextPermalink && note.contextPermalink !== "") {
-                        modnote += `[${note.text}](${note.contextPermalink})`;
-                    } else {
-                        modnote += note.text;
-                    }
+    const notesResults = await Promise.all(combinedNotesRetriever);
+    const allUserNotes: CombinedUserNote[] = [];
 
-                    modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale)}`;
-
-                    modmailMessage += `* ${modnote}\n`;
-                }
-                modmailMessage += "\n";
+    for (const resultSet of notesResults) {
+        for (const item of resultSet) {
+            if (item) {
+                allUserNotes.push(item);
             }
-        } catch (e) {
-            console.log("Failed to retrieve Toolbox usernotes. The Toolbox wiki page may not exist on this subreddit.");
         }
+    }
+
+    if (allUserNotes.length > 0) {
+        allUserNotes.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+        modmailMessage += "**User Notes**:\n\n";
+
+        for (const note of allUserNotes) {
+            let modnote = "";
+            if (note.noteType) {
+                modnote += `[${note.noteType}] `;
+            }
+
+            if (note.contextPermalink && note.contextPermalink !== "") {
+                modnote += `[${note.text}](${note.contextPermalink})`;
+            } else {
+                modnote += note.text;
+            }
+
+            modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale)}`;
+
+            if (shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes) {
+                // Include whether these are Toolbox or Native notes
+                modnote += ` (${note.type})`;
+            }
+
+            modmailMessage += `* ${modnote}\n`;
+        }
+        modmailMessage += "\n";
     }
 
     console.log(modmailMessage);
@@ -204,14 +181,75 @@ function getToolboxNoteTypeFromEnum (noteType: string | undefined): string | und
     }
 }
 
-async function getPostOrCommentFromRedditId (context: TriggerContext, redditId: `t5_${string}` | `t1_${string}` | `t3_${string}` | undefined): Promise <Post | Comment | undefined> {
+async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId: `t5_${string}` | `t1_${string}` | `t3_${string}` | undefined): Promise <Post | Comment | undefined> {
     if (!redditId || redditId.startsWith("t5")) {
         return;
     } else if (redditId.startsWith("t1")) {
         // Comment
-        return context.reddit.getCommentById(redditId);
+        return reddit.getCommentById(redditId);
     } else if (redditId.startsWith("t3")) {
         // Post
-        return context.reddit.getPostById(redditId);
+        return reddit.getPostById(redditId);
+    }
+}
+
+async function getUserNoteFromRedditModNote (reddit: RedditAPIClient, modNote: ModNote): Promise<CombinedUserNote | undefined> {
+    // Function to transform a Reddit mod note into the Toolbox Usernote format, for ease of handling.
+    if (!modNote.userNote || !modNote.userNote.note) {
+        return;
+    }
+
+    const noteTarget = await getPostOrCommentFromRedditId(reddit, modNote.userNote.redditId);
+
+    return {
+        type: "Reddit",
+        moderatorUsername: modNote.operator.name ?? "unknown",
+        text: modNote.userNote.note,
+        timestamp: modNote.createdAt,
+        username: modNote.user.name ?? "",
+        contextPermalink: noteTarget === undefined ? undefined : noteTarget.permalink,
+        noteType: getRedditNoteTypeFromEnum(modNote.userNote.label),
+    };
+}
+
+async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<(CombinedUserNote | undefined)[]> {
+    try {
+        const modNotes = await reddit.getModNotes({
+            subreddit: subredditName,
+            user: userName,
+            filter: "NOTE",
+        }).all();
+
+        const results = await Promise.all(modNotes.map(modNote => getUserNoteFromRedditModNote(reddit, modNote)));
+        console.log(`Native mod notes found: ${results.length}`);
+        return results;
+    } catch (error) {
+        console.log(error); // Currently, this may crash if there are any notes without a permalink
+        return [];
+    }
+}
+
+async function getUserNoteFromToolboxUserNote (userNote: Usernote): Promise<CombinedUserNote> {
+    return {
+        type: "Toolbox",
+        moderatorUsername: userNote.moderatorUsername,
+        text: userNote.text,
+        timestamp: userNote.timestamp,
+        username: userNote.username,
+        contextPermalink: userNote.contextPermalink,
+        noteType: getToolboxNoteTypeFromEnum(userNote.noteType),
+    };
+}
+
+async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<CombinedUserNote[]> {
+    const toolbox = new ToolboxClient(reddit);
+    try {
+        const userNotes = await toolbox.getUsernotesOnUser(subredditName, userName);
+        const results = await Promise.all(userNotes.map(userNote => getUserNoteFromToolboxUserNote(userNote)));
+        console.log(`Toolbox notes found: ${results.length}`);
+        return results;
+    } catch (e) {
+        console.log("Failed to retrieve Toolbox usernotes. The Toolbox wiki page may not exist on this subreddit.");
+        return [];
     }
 }
