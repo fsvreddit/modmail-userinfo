@@ -82,7 +82,7 @@ Devvit.addSettings([
         type: "boolean",
         name: "copyOPAfterSummary",
         label: "Copy initial message as new message after summary",
-        helpText: "Helps make the preview of modmails more useful by allowing you to see the initial message text",
+        helpText: "Helps make the preview of modmails more useful by allowing you to see the initial message text. Sent on incoming modmail only.",
         defaultValue: false,
     },
 ]);
