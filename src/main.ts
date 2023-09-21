@@ -78,6 +78,13 @@ Devvit.addSettings([
             }
         },
     },
+    {
+        type: "boolean",
+        name: "copyOPAfterSummary",
+        label: "Copy initial message as new message after summary",
+        helpText: "Helps make the preview of modmails more useful by allowing you to see the initial message text",
+        defaultValue: false,
+    },
 ]);
 
 Devvit.addTrigger({
@@ -136,6 +143,20 @@ Devvit.addTrigger({
             conversationId: event.conversationId,
             isInternal: true,
         });
+
+        const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
+        // If option enabled, and the message is from the participant, copy the OP's body as a new message.
+        if (copyOPAfterSummary) {
+            const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
+            console.log(firstMessage);
+            if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
+                await context.reddit.modMail.reply({
+                    body: firstMessage.bodyMarkdown,
+                    conversationId: event.conversationId,
+                    isInternal: true,
+                });
+            }
+        }
 
         // If conversation was previously archived (e.g. a ban) archive it again.
         if (conversationIsArchived) {
