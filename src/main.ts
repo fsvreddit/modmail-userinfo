@@ -146,9 +146,8 @@ Devvit.addTrigger({
 
         const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
         // If option enabled, and the message is from the participant, copy the OP's body as a new message.
-        if (copyOPAfterSummary) {
+        if (copyOPAfterSummary && !conversationIsArchived) {
             const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
-            console.log(firstMessage);
             if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
                 await context.reddit.modMail.reply({
                     body: firstMessage.bodyMarkdown,
