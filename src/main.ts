@@ -92,11 +92,7 @@ Devvit.addTrigger({
     async onEvent (event, context) {
         console.log("Received modmail trigger event.");
 
-        if (!event.messageAuthor) {
-            return;
-        }
-
-        if (event.messageAuthor.id === context.appAccountId) {
+        if (event.messageAuthor && event.messageAuthor.id === context.appAccountId) {
             console.log("Modmail event triggered by this app. Quitting.");
             return;
         }
