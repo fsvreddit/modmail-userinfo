@@ -148,8 +148,6 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         modmailMessage += "\n";
     }
 
-    console.log(modmailMessage);
-
     return modmailMessage;
 }
 
