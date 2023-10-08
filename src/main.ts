@@ -1,5 +1,5 @@
-import {Devvit, ModMailConversationState} from "@devvit/public-api";
-import {createUserSummaryModmail} from "./modmail.js";
+import {Devvit} from "@devvit/public-api";
+import {onModmailReceiveEvent, sendDelayedSummaries} from "./modmail.js";
 
 Devvit.addSettings([
     {
@@ -85,92 +85,45 @@ Devvit.addSettings([
         helpText: "Helps make the preview of modmails more useful by allowing you to see the initial message text. Sent on incoming modmail only.",
         defaultValue: false,
     },
+    {
+        type: "boolean",
+        name: "delaySendAfterBan",
+        label: "Delay before adding summary after banning a user",
+        helpText: "If the summary is added too soon after banning a user, 'Recently removed comments' may not include comments removed around the time of a ban. Enable this option to wait before adding summary.",
+        defaultValue: false,
+    },
 ]);
 
 Devvit.addTrigger({
     event: "ModMail",
-    async onEvent (event, context) {
-        console.log("Received modmail trigger event.");
+    onEvent: onModmailReceiveEvent,
+});
 
-        if (event.messageAuthor && event.messageAuthor.id === context.appAccountId) {
-            console.log("Modmail event triggered by this app. Quitting.");
-            return;
+Devvit.addSchedulerJob({
+    name: "sendDelayedSummaries",
+    onRun: sendDelayedSummaries,
+});
+
+Devvit.addTrigger({
+    events: ["AppInstall", "AppUpgrade"],
+    async onEvent (_, context) {
+        // Clear down existing scheduler jobs, if any, in case a new release changes the schedule
+        const currentJobs = await context.scheduler.listJobs();
+        for (const job of currentJobs) {
+            console.log("Deleted a job");
+            await context.scheduler.cancelJob(job.id);
         }
 
-        const conversationResponse = await context.reddit.modMail.getConversation({
-            conversationId: event.conversationId,
+        await context.scheduler.runJob({
+            cron: "* * * * *", // Every minute of every day
+            name: "sendDelayedSummaries",
         });
-
-        if (!conversationResponse.conversation) {
-            return;
-        }
-
-        // Ensure that we are responding to the first message in the chain - only want to create a summary once.
-        if (!conversationResponse.conversation.numMessages || conversationResponse.conversation.numMessages > 1) {
-            return;
-        }
-
-        // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion
-        if (!conversationResponse.conversation.participant || !conversationResponse.conversation.participant.name) {
-            console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
-            return;
-        }
-
-        // Check to see if conversation is already archived e.g. from a ban message
-        const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
-
-        // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
-        const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-        const subReddit = await context.reddit.getSubredditById(context.subredditId);
-
-        // Check if user is on the ignore list.
-        const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
-        if (usersToIgnore) {
-            const userList = usersToIgnore.split(",");
-            if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
-                console.log(`User /u/${user.username} is on the ignore list, skipping`);
-                return;
-            }
-        }
-
-        // Check if user is a mod, and if app is configured to send summaries for mods
-        const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
-        if (conversationResponse.conversation.participant.isMod && !createSummaryForModerators) {
-            console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
-            return;
-        }
-
-        // All checks passed. Retrieve text for modmail summary.
-        const modmailMessage = await createUserSummaryModmail(context, user, subReddit.name);
-
-        await context.reddit.modMail.reply({
-            body: modmailMessage,
-            conversationId: event.conversationId,
-            isInternal: true,
-        });
-
-        const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
-        // If option enabled, and the message is from the participant, copy the OP's body as a new message.
-        if (copyOPAfterSummary && !conversationIsArchived) {
-            const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
-            if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
-                await context.reddit.modMail.reply({
-                    body: firstMessage.bodyMarkdown,
-                    conversationId: event.conversationId,
-                    isInternal: true,
-                });
-            }
-        }
-
-        // If conversation was previously archived (e.g. a ban) archive it again.
-        if (conversationIsArchived) {
-            await context.reddit.modMail.archiveConversation(event.conversationId);
-        }
     },
 });
 
 Devvit.configure({
     redditAPI: true,
+    kvStore: true,
 });
 
 export default Devvit;
