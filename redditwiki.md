@@ -29,3 +29,5 @@ Potential use cases:
 **Format for date output** - controls the date format used to display dates in the summary for toolbox notes and recently removed comments.
 
 **Copy initial message as new message after summary** - makes a copy of the original message after the summary. This means that the overview of the inbox makes more sense than just seeing a list of user summaries, but can increase clutter.
+
+**Delay before adding summary after banning a user** - Waits two minutes after banning a user before adding the summary. This can help if you have mod actions that ban at the same time as removing comments, in some cases the removed comment may be missed from the summary if the modmail summary sends too fast.

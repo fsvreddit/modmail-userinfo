@@ -1,9 +1,103 @@
-import {Comment, ModNote, Post, RedditAPIClient, TriggerContext, User} from "@devvit/public-api";
-import {formatDistanceToNow} from "date-fns";
+import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, Subreddit, TriggerContext, User} from "@devvit/public-api";
+import {ModMail} from "@devvit/protos";
+import {addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
+}
+
+export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, context: TriggerContext) {
+    console.log("Received modmail trigger event.");
+
+    if (event.messageAuthor && event.messageAuthor.id === context.appAccountId) {
+        console.log("Modmail event triggered by this app. Quitting.");
+        return;
+    }
+
+    const conversationResponse = await context.reddit.modMail.getConversation({
+        conversationId: event.conversationId,
+    });
+
+    if (!conversationResponse.conversation) {
+        return;
+    }
+
+    // Ensure that we are responding to the first message in the chain - only want to create a summary once.
+    if (!conversationResponse.conversation.numMessages || conversationResponse.conversation.numMessages > 1) {
+        return;
+    }
+
+    // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion
+    if (!conversationResponse.conversation.participant || !conversationResponse.conversation.participant.name) {
+        console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
+        return;
+    }
+
+    // Check to see if conversation is already archived e.g. from a ban message
+    const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
+
+    // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
+    const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+    const subReddit = await context.reddit.getSubredditById(context.subredditId);
+
+    // Check if user is on the ignore list.
+    const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
+    if (usersToIgnore) {
+        const userList = usersToIgnore.split(",");
+        if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
+            console.log(`User /u/${user.username} is on the ignore list, skipping`);
+            return;
+        }
+    }
+
+    // Check if user is a mod, and if app is configured to send summaries for mods
+    const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
+    if (conversationResponse.conversation.participant.isMod && !createSummaryForModerators) {
+        console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
+        return;
+    }
+
+    let sendLater = false;
+    if (conversationIsArchived) {
+        sendLater = await context.settings.get<boolean>("delaySendAfterBan") ?? false;
+    }
+
+    if (sendLater) {
+        // Store the conversation ID in the KV Store to send on a schedule.
+        await context.kvStore.put(event.conversationId, new Date().getTime());
+        return;
+    }
+
+    await createAndSendSummaryModmail(context, user, subReddit.name, event.conversationId);
+
+    const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
+    // If option enabled, and the message is from the participant, copy the OP's body as a new message.
+    if (copyOPAfterSummary && !conversationIsArchived) {
+        const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
+        if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
+            await context.reddit.modMail.reply({
+                body: firstMessage.bodyMarkdown,
+                conversationId: event.conversationId,
+                isInternal: true,
+            });
+        }
+    }
+
+    // If conversation was previously archived (e.g. a ban) archive it again.
+    if (conversationIsArchived) {
+        await context.reddit.modMail.archiveConversation(event.conversationId);
+    }
+}
+
+async function createAndSendSummaryModmail (context: TriggerContext, user: User, subName: string, conversationId: string) {
+    const modmailMessage = await createUserSummaryModmail(context, user, subName);
+
+    await context.reddit.modMail.reply({
+        body: modmailMessage,
+        conversationId,
+        isInternal: true,
+    });
 }
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
@@ -148,8 +242,6 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         modmailMessage += "\n";
     }
 
-    console.log(modmailMessage);
-
     return modmailMessage;
 }
 
@@ -259,4 +351,39 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
         console.log("Failed to retrieve Toolbox usernotes. The Toolbox wiki page may not exist on this subreddit.");
         return [];
     }
+}
+
+async function sendDelayedSummary (conversationId: string, subName: string, context: TriggerContext) {
+    const eventDate = await context.kvStore.get<number>(conversationId);
+
+    // If event date is within two minutes, quit and let a future run take over.
+    if (eventDate && new Date(eventDate) > addMinutes(new Date(), -2)) {
+        return;
+    }
+
+    const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
+
+    // Sanity checks to ensure that conversation is in the right state. KV Store entry shouldn't exist without these though.
+    if (conversationResponse.conversation && conversationResponse.conversation.participant && conversationResponse.conversation.participant.name) {
+        const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
+
+        const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+        await createAndSendSummaryModmail(context, user, subName, conversationId);
+        if (conversationIsArchived) {
+            await context.reddit.modMail.archiveConversation(conversationId);
+        }
+    }
+
+    await context.kvStore.delete(conversationId);
+}
+
+export async function sendDelayedSummaries (event: ScheduledJobEvent, context: TriggerContext) {
+    const keys = await context.kvStore.list();
+    if (keys.length === 0) {
+        return;
+    }
+
+    const subReddit = await context.reddit.getCurrentSubreddit();
+
+    await Promise.all(keys.map(key => sendDelayedSummary(key, subReddit.name, context)));
 }
