@@ -1,4 +1,4 @@
-import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, Subreddit, TriggerContext, User} from "@devvit/public-api";
+import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
 import {addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
@@ -100,6 +100,22 @@ async function createAndSendSummaryModmail (context: TriggerContext, user: User,
     });
 }
 
+interface SubredditVisibility {
+    subredditName: string,
+    isVisible: boolean,
+}
+
+async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<SubredditVisibility> {
+    try {
+        const subreddit = await context.reddit.getSubredditByName(subredditName);
+        const isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
+        return {subredditName, isVisible};
+    } catch {
+        // Error retrieving subreddit. Subreddit is most likely to be public but gated due to controversial topics.
+        return {subredditName, isVisible: true};
+    }
+}
+
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
     console.log("About to create summary modmail");
     let modmailMessage = `Possible relevant information for /u/${user.username}:\n\n`;
@@ -136,14 +152,14 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     // Get detail for subreddits. This is because we don't want to show counts for private subreddits that this app might
     // be installed in, but that an average person wouldn't necessarily know of. We want to protect users' privacy somewhat
     // so limit output to what a normal user would see.
-    const subreddits = await Promise.all(commentList.filter(item => !item.subName.startsWith("u_")).map(item => context.reddit.getSubredditByName(item.subName)));
+    const subredditVisibility = await Promise.all(commentList.map(item => getSubredditVisibility(context, item.subName)));
 
     const numberOfSubsToReportOn = await context.settings.get<number>("numberOfSubsToIncludeInSummary") ?? 10;
 
     commentList = commentList
         .sort((a, b) => b.commentCount - a.commentCount) // Sort descending...
-        .filter(item => item.subName === subredditName || item.subName.startsWith("u_") || subreddits.some(subreddit => subreddit.name === item.subName
-            && (subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived"))) // Exclude private subreddits
+        .filter(item => item.subName === subredditName
+            || subredditVisibility.some(subreddit => subreddit.subredditName === item.subName && subreddit.isVisible)) // Exclude private subreddits
         .slice(0, numberOfSubsToReportOn); // Then take top N entries
 
     if (commentList.length > 0) {
@@ -354,27 +370,33 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
 }
 
 async function sendDelayedSummary (conversationId: string, subName: string, context: TriggerContext) {
-    const eventDate = await context.kvStore.get<number>(conversationId);
+    try {
+        const eventDate = await context.kvStore.get<number>(conversationId);
 
-    // If event date is within two minutes, quit and let a future run take over.
-    if (eventDate && new Date(eventDate) > addMinutes(new Date(), -2)) {
-        return;
-    }
-
-    const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
-
-    // Sanity checks to ensure that conversation is in the right state. KV Store entry shouldn't exist without these though.
-    if (conversationResponse.conversation && conversationResponse.conversation.participant && conversationResponse.conversation.participant.name) {
-        const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
-
-        const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-        await createAndSendSummaryModmail(context, user, subName, conversationId);
-        if (conversationIsArchived) {
-            await context.reddit.modMail.archiveConversation(conversationId);
+        // If event date is within two minutes, quit and let a future run take over.
+        if (eventDate && new Date(eventDate) > addMinutes(new Date(), -2)) {
+            return;
         }
-    }
 
-    await context.kvStore.delete(conversationId);
+        const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
+
+        // Sanity checks to ensure that conversation is in the right state. KV Store entry shouldn't exist without these though.
+        if (conversationResponse.conversation && conversationResponse.conversation.participant && conversationResponse.conversation.participant.name) {
+            const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
+
+            const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+            await createAndSendSummaryModmail(context, user, subName, conversationId);
+            if (conversationIsArchived) {
+                await context.reddit.modMail.archiveConversation(conversationId);
+            }
+        }
+
+        await context.kvStore.delete(conversationId);
+    } catch (error) {
+        // If one fails, log to console and continue.
+        console.log(`Error sending modmail summary for conversation ${conversationId}!`);
+        console.log(error);
+    }
 }
 
 export async function sendDelayedSummaries (event: ScheduledJobEvent, context: TriggerContext) {
