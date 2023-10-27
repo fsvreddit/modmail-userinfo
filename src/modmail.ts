@@ -65,7 +65,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
 
     if (sendLater) {
         // Store the conversation ID in the KV Store to send on a schedule.
-        await context.kvStore.put(event.conversationId, new Date().getTime());
+        await context.redis.zAdd("SendLaterQueue", {member: event.conversationId, score: new Date().getTime()});
         return;
     }
 
@@ -371,13 +371,6 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
 
 async function sendDelayedSummary (conversationId: string, subName: string, context: TriggerContext) {
     try {
-        const eventDate = await context.kvStore.get<number>(conversationId);
-
-        // If event date is within two minutes, quit and let a future run take over.
-        if (eventDate && new Date(eventDate) > addMinutes(new Date(), -2)) {
-            return;
-        }
-
         const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
 
         // Sanity checks to ensure that conversation is in the right state. KV Store entry shouldn't exist without these though.
@@ -391,7 +384,7 @@ async function sendDelayedSummary (conversationId: string, subName: string, cont
             }
         }
 
-        await context.kvStore.delete(conversationId);
+        await context.redis.zRem("SendLaterQueue", [conversationId]);
     } catch (error) {
         // If one fails, log to console and continue.
         console.log(`Error sending modmail summary for conversation ${conversationId}!`);
@@ -400,12 +393,12 @@ async function sendDelayedSummary (conversationId: string, subName: string, cont
 }
 
 export async function sendDelayedSummaries (event: ScheduledJobEvent, context: TriggerContext) {
-    const keys = await context.kvStore.list();
+    const keys = await context.redis.zRange("SendLaterQueue", 0, addMinutes(new Date(), -1).getTime(), {by: "score"});
     if (keys.length === 0) {
         return;
     }
 
     const subReddit = await context.reddit.getCurrentSubreddit();
 
-    await Promise.all(keys.map(key => sendDelayedSummary(key, subReddit.name, context)));
+    await Promise.all(keys.map(key => sendDelayedSummary(key.member, subReddit.name, context)));
 }
