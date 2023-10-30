@@ -39,7 +39,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
 
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
     const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-    const subReddit = await context.reddit.getSubredditById(context.subredditId);
+    const subReddit = await context.reddit.getCurrentSubreddit();
 
     // Check if user is on the ignore list.
     const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
@@ -110,8 +110,10 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
         const subreddit = await context.reddit.getSubredditByName(subredditName);
         const isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
         return {subredditName, isVisible};
-    } catch {
+    } catch (error) {
         // Error retrieving subreddit. Subreddit is most likely to be public but gated due to controversial topics.
+        console.log(`Could not retrieve information for /r/${subredditName}`);
+        console.log(error);
         return {subredditName, isVisible: true};
     }
 }
@@ -214,7 +216,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     }
 
     const shouldIncludeToolboxUsernotes = await context.settings.get<boolean>("includeToolboxNotes");
-    if (shouldIncludeNativeUsernotes) {
+    if (shouldIncludeToolboxUsernotes) {
         combinedNotesRetriever.push(getToolboxNotesAsUserNotes(context.reddit, subredditName, user.username));
     }
 
