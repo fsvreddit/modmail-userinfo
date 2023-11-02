@@ -114,6 +114,20 @@ Devvit.addTrigger({
             await context.scheduler.cancelJob(job.id);
         }
 
+        // kvStore migration - to be removed in a future release when kvStore is fully deprecated.
+        const migrationDone = await context.redis.get("RedisMigrationDone");
+        if (!migrationDone) {
+            console.log("Migrating from kvStore to Redis");
+            const keys = await context.kvStore.list();
+            for (const key of keys.filter(key => key !== "SendLaterQueue")) {
+                const value = await context.kvStore.get<number>(key) ?? 0;
+                await context.redis.zAdd("SendLaterQueue", {member: key, score: value});
+                await context.redis.del(key);
+            }
+            await context.redis.set("RedisMigrationDone", "true");
+            console.log(`Redis migration completed. ${keys.length} keys migrated.`);
+        }
+
         await context.scheduler.runJob({
             cron: "* * * * *", // Every minute of every day
             name: "sendDelayedSummaries",
@@ -124,6 +138,7 @@ Devvit.addTrigger({
 Devvit.configure({
     redditAPI: true,
     kvStore: true,
+    redis: true,
 });
 
 export default Devvit;
