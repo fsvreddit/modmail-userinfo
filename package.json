@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@devvit/public-api": "0.10.8",
+    "@types/lodash": "^4.14.201",
     "date-fns": "^2.30.0",
     "toolbox-devvit": "^0.3.0"
   },

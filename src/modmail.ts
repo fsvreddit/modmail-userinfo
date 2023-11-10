@@ -2,6 +2,7 @@ import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, Reddit
 import {ModMail} from "@devvit/protos";
 import {addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
+import _ from "lodash";
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
@@ -64,8 +65,15 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     }
 
     if (sendLater) {
-        // Store the conversation ID in the KV Store to send on a schedule.
-        await context.redis.zAdd("SendLaterQueue", {member: event.conversationId, score: new Date().getTime()});
+        console.log("Queueing message to send one minute from now.");
+        await context.scheduler.runJob({
+            name: "sendDelayedSummary",
+            data: {
+                conversationId: event.conversationId,
+            },
+            runAt: addMinutes(new Date(), 1),
+        });
+
         return;
     }
 
@@ -74,6 +82,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
     // If option enabled, and the message is from the participant, copy the OP's body as a new message.
     if (copyOPAfterSummary && !conversationIsArchived) {
+        console.log("Copying original message after summary");
         const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
         if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
             await context.reddit.modMail.reply({
@@ -119,7 +128,8 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
 }
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
-    console.log("About to create summary modmail");
+    console.log(`About to create summary modmail for ${user.username}`);
+
     let modmailMessage = `Possible relevant information for /u/${user.username}:\n\n`;
 
     modmailMessage += `**Age**: ${formatDistanceToNow(user.createdAt)}\n\n`;
@@ -171,19 +181,12 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
             modmailMessage += "\n\n";
         }
 
-        for (const item of commentList) {
-            if (subHistoryDisplayStyle === "bullet") {
-                modmailMessage += `* /r/${item.subName}: ${item.commentCount}\n`;
-            } else {
-                modmailMessage += `/r/${item.subName} (${item.commentCount}), `;
-            }
-        }
-
         if (subHistoryDisplayStyle === "bullet") {
+            modmailMessage += commentList.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
             modmailMessage += "\n";
         } else {
-            // Remove trailing comma, add newlines
-            modmailMessage = `${modmailMessage.substring(0, modmailMessage.length - 2)}\n\n`;
+            modmailMessage += commentList.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
+            modmailMessage += "\n\n";
         }
     }
 
@@ -223,11 +226,9 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     const notesResults = await Promise.all(combinedNotesRetriever);
     const allUserNotes: CombinedUserNote[] = [];
 
-    for (const resultSet of notesResults) {
-        for (const item of resultSet) {
-            if (item) {
-                allUserNotes.push(item);
-            }
+    for (const item of _.flatten(notesResults)) {
+        if (item) {
+            allUserNotes.push(item);
         }
     }
 
@@ -346,7 +347,7 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
     }
 }
 
-async function getUserNoteFromToolboxUserNote (userNote: Usernote): Promise<CombinedUserNote> {
+function getUserNoteFromToolboxUserNote (userNote: Usernote): CombinedUserNote {
     return {
         noteSource: "Toolbox",
         moderatorUsername: userNote.moderatorUsername,
@@ -362,7 +363,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
     const toolbox = new ToolboxClient(reddit);
     try {
         const userNotes = await toolbox.getUsernotesOnUser(subredditName, userName);
-        const results = await Promise.all(userNotes.map(userNote => getUserNoteFromToolboxUserNote(userNote)));
+        const results = userNotes.map(userNote => getUserNoteFromToolboxUserNote(userNote));
         console.log(`Toolbox notes found: ${results.length}`);
         return results;
     } catch (e) {
@@ -371,7 +372,20 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
     }
 }
 
-async function sendDelayedSummary (conversationId: string, subName: string, context: TriggerContext) {
+export async function sendDelayedSummary (event: ScheduledJobEvent, context: TriggerContext) {
+    if (!event.data) {
+        return;
+    }
+
+    const conversationId = event.data.conversationId as string | undefined;
+    if (!conversationId) {
+        return;
+    }
+
+    console.log("Processing delayed summary.");
+
+    const subReddit = await context.reddit.getCurrentSubreddit();
+
     try {
         const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
 
@@ -380,27 +394,14 @@ async function sendDelayedSummary (conversationId: string, subName: string, cont
             const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
             const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-            await createAndSendSummaryModmail(context, user, subName, conversationId);
+            await createAndSendSummaryModmail(context, user, subReddit.name, conversationId);
             if (conversationIsArchived) {
                 await context.reddit.modMail.archiveConversation(conversationId);
             }
         }
-
-        await context.redis.zRem("SendLaterQueue", [conversationId]);
     } catch (error) {
         // If one fails, log to console and continue.
         console.log(`Error sending modmail summary for conversation ${conversationId}!`);
         console.log(error);
     }
-}
-
-export async function sendDelayedSummaries (event: ScheduledJobEvent, context: TriggerContext) {
-    const keys = await context.redis.zRange("SendLaterQueue", 0, addMinutes(new Date(), -1).getTime(), {by: "score"});
-    if (keys.length === 0) {
-        return;
-    }
-
-    const subReddit = await context.reddit.getCurrentSubreddit();
-
-    await Promise.all(keys.map(key => sendDelayedSummary(key.member, subReddit.name, context)));
 }
