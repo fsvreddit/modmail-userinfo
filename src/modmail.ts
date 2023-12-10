@@ -2,7 +2,7 @@ import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, Reddit
 import {ModMail} from "@devvit/protos";
 import {addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
-import _ from "lodash";
+import _ = require("lodash");
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
