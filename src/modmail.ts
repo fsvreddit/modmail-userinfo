@@ -20,18 +20,32 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
         conversationId: event.conversationId,
     });
 
+    console.log("Got conversation response");
+
     if (!conversationResponse.conversation) {
+        console.log("No conversation");
         return;
     }
 
-    // Ensure that we are responding to the first message in the chain - only want to create a summary once.
-    if (!conversationResponse.conversation.numMessages || conversationResponse.conversation.numMessages > 1) {
+    if (!event.messageAuthor) {
+        console.log("No message author");
         return;
     }
 
     // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion
     if (!conversationResponse.conversation.participant || !conversationResponse.conversation.participant.name) {
         console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
+        return;
+    }
+
+    const messagesInConversation = Object.values(conversationResponse.conversation.messages);
+
+    const firstMessage = messagesInConversation[0];
+    console.log(`First Message ID: ${firstMessage.id ?? "undefined"}`);
+
+    // Check that the first message in the entire conversation was for this person.
+    if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
+        console.log("Message isn't the very first. Quitting");
         return;
     }
 
@@ -53,10 +67,12 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     }
 
     // Check if user is a mod, and if app is configured to send summaries for mods
-    const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
-    if (conversationResponse.conversation.participant.isMod && !createSummaryForModerators) {
-        console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
-        return;
+    if (conversationResponse.conversation.participant.isMod) {
+        const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
+        if (!createSummaryForModerators) {
+            console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
+            return;
+        }
     }
 
     let sendLater = false;
@@ -299,6 +315,7 @@ function getToolboxNoteTypeFromEnum (noteType: string | undefined): string | und
     }
 }
 
+// eslint-disable-next-line require-await
 async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId: `t5_${string}` | `t1_${string}` | `t3_${string}` | undefined): Promise <Post | Comment | undefined> {
     if (!redditId || redditId.startsWith("t5")) {
         return;
