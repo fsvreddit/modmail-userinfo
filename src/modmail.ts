@@ -199,11 +199,11 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
         if (subHistoryDisplayStyle === "bullet") {
             modmailMessage += commentList.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
-            modmailMessage += "\n";
         } else {
             modmailMessage += commentList.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
-            modmailMessage += "\n\n";
         }
+
+        modmailMessage += "\n\n";
     }
 
     const locale = await context.settings.get<string>("localeForDateOutput") ?? "en-GB";
