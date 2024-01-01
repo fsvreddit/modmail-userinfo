@@ -1,7 +1,8 @@
-import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User} from "@devvit/public-api";
+import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
 import {addDays, addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
+import {RawSubredditConfig, RawUsernoteType} from "toolbox-devvit/dist/types/RawSubredditConfig.js";
 import _ = require("lodash");
 
 interface CombinedUserNote extends Usernote {
@@ -310,17 +311,7 @@ function getRedditNoteTypeFromEnum (noteType: string | undefined): string | unde
     }
 }
 
-function getToolboxNoteTypeFromEnum (noteType: string | undefined): string | undefined {
-    const noteTypes = [
-        {key: "gooduser", text: "Good Contributor"},
-        {key: "spamwatch", text: "Spam Watch"},
-        {key: "spamwarn", text: "Spam Warning"},
-        {key: "abusewarn", text: "Abuse Warning"},
-        {key: "ban", text: "Ban"},
-        {key: "permban", text: "Permanent Ban"},
-        {key: "botban", text: "Bot Ban"},
-    ];
-
+function getToolboxNoteTypeFromEnum (noteType: string | undefined, noteTypes: RawUsernoteType[]): string | undefined {
     const result = noteTypes.find(x => x.key === noteType);
     if (result) {
         return result.text;
@@ -376,23 +367,31 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
     }
 }
 
-function getUserNoteFromToolboxUserNote (userNote: Usernote): CombinedUserNote {
-    return {
-        noteSource: "Toolbox",
-        moderatorUsername: userNote.moderatorUsername,
-        text: userNote.text,
-        timestamp: userNote.timestamp,
-        username: userNote.username,
-        contextPermalink: userNote.contextPermalink,
-        noteType: getToolboxNoteTypeFromEnum(userNote.noteType),
-    };
-}
-
 async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<CombinedUserNote[]> {
+    const subreddit = await reddit.getCurrentSubreddit();
+    let toolboxConfigPage: WikiPage | undefined;
+    try {
+        toolboxConfigPage = await reddit.getWikiPage(subreddit.name, "toolbox");
+    } catch (error) {
+        console.log("Error retrieving Toolbox configuration.");
+        console.log(error);
+        return [];
+    }
+
+    const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;
+
     const toolbox = new ToolboxClient(reddit);
     try {
         const userNotes = await toolbox.getUsernotesOnUser(subredditName, userName);
-        const results = userNotes.map(userNote => getUserNoteFromToolboxUserNote(userNote));
+        const results = userNotes.map(userNote => ({
+            noteSource: "Toolbox",
+            moderatorUsername: userNote.moderatorUsername,
+            text: userNote.text,
+            timestamp: userNote.timestamp,
+            username: userNote.username,
+            contextPermalink: userNote.contextPermalink,
+            noteType: getToolboxNoteTypeFromEnum(userNote.noteType, toolboxConfig.usernoteColors),
+        }) as CombinedUserNote);
         console.log(`Toolbox notes found: ${results.length}`);
         return results;
     } catch (e) {
