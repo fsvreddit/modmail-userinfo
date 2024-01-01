@@ -1,6 +1,6 @@
 import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
-import {addMinutes, formatDistanceToNow} from "date-fns";
+import {addDays, addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
 import _ = require("lodash");
 
@@ -15,6 +15,16 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
         console.log("Modmail event triggered by this app. Quitting.");
         return;
     }
+
+    const redisKey = `processed-${event.conversationId}`;
+    const alreadyProcessed = await context.redis.get(redisKey);
+    if (alreadyProcessed) {
+        console.log("Already processed an action for this conversation. Either a reply or a duplicate trigger.");
+        return;
+    }
+
+    // Make a note that we've processed this conversation.
+    await context.redis.set(redisKey, new Date().getTime().toString(), {expiration: addDays(new Date(), 7)});
 
     const conversationResponse = await context.reddit.modMail.getConversation({
         conversationId: event.conversationId,
@@ -48,6 +58,8 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
         console.log("Message isn't the very first. Quitting");
         return;
     }
+
+    console.log(`Current conversation state: ${conversationResponse.conversation.state ?? "Unknown"}`);
 
     // Check to see if conversation is already archived e.g. from a ban message
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
