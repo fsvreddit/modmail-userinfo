@@ -1,4 +1,4 @@
-import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
+import {Comment, GetConversationResponse, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
 import {addDays, addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
@@ -27,9 +27,16 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     // Make a note that we've processed this conversation.
     await context.redis.set(redisKey, new Date().getTime().toString(), {expiration: addDays(new Date(), 7)});
 
-    const conversationResponse = await context.reddit.modMail.getConversation({
-        conversationId: event.conversationId,
-    });
+    let conversationResponse: GetConversationResponse | undefined;
+    try {
+        conversationResponse = await context.reddit.modMail.getConversation({
+            conversationId: event.conversationId,
+        });
+    } catch (error) {
+        console.log("Error retrieving conversation:");
+        console.log(error);
+        return;
+    }
 
     console.log("Got conversation response");
 
@@ -66,14 +73,21 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
-    const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+    let user: User | undefined;
+    try {
+        user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+    } catch {
+        console.log(`User ${conversationResponse.conversation.participant.name} is shadowbanned or suspended. Quitting.`);
+        return;
+    }
+
     const subReddit = await context.reddit.getCurrentSubreddit();
 
     // Check if user is on the ignore list.
     const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
-        if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
+        if (userList.some(x => x.trim().toLowerCase() === user?.username.toLowerCase())) {
             console.log(`User /u/${user.username} is on the ignore list, skipping`);
             return;
         }
@@ -144,16 +158,29 @@ interface SubredditVisibility {
 }
 
 async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<SubredditVisibility> {
+    const redisKey = `subredditVisibility-${subredditName}`;
+
+    // Check Redis cache for subreddit visibility.
+    const cachedValue = await context.redis.get(redisKey);
+    if (cachedValue) {
+        console.log(`Visibility for ${subredditName} already cached (${cachedValue})`);
+        return {subredditName, isVisible: cachedValue === "true"};
+    }
+
+    let isVisible = true;
     try {
         const subreddit = await context.reddit.getSubredditByName(subredditName);
-        const isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
-        return {subredditName, isVisible};
+        isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
     } catch (error) {
         // Error retrieving subreddit. Subreddit is most likely to be public but gated due to controversial topics.
         console.log(`Could not retrieve information for /r/${subredditName}`);
         console.log(error);
-        return {subredditName, isVisible: true};
     }
+
+    // Cache the value for a day, unlikely to change that often.
+    console.log(`Caching visibility for ${subredditName} (${JSON.stringify(isVisible)})`);
+    await context.redis.set(redisKey, JSON.stringify(isVisible), {expiration: addDays(new Date(), 1)});
+    return {subredditName, isVisible};
 }
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
