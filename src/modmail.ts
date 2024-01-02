@@ -76,8 +76,9 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     let user: User | undefined;
     try {
         user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-    } catch {
-        console.log(`User ${conversationResponse.conversation.participant.name} is shadowbanned or suspended. Quitting.`);
+    } catch (error) {
+        console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Quitting.`);
+        console.log(error);
         return;
     }
 
