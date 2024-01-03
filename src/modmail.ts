@@ -163,7 +163,7 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
         // Not a subreddit - comment on user profile
         return {subredditName, isVisible: true}
     }
-    
+
     const redisKey = `subredditVisibility-${subredditName}`;
 
     // Check Redis cache for subreddit visibility.
@@ -402,21 +402,26 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
 }
 
 async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<CombinedUserNote[]> {
-    const subreddit = await reddit.getCurrentSubreddit();
-    let toolboxConfigPage: WikiPage | undefined;
-    try {
-        toolboxConfigPage = await reddit.getWikiPage(subreddit.name, "toolbox");
-    } catch (error) {
-        console.log("Error retrieving Toolbox configuration.");
-        console.log(error);
-        return [];
-    }
-
-    const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;
-
     const toolbox = new ToolboxClient(reddit);
     try {
         const userNotes = await toolbox.getUsernotesOnUser(subredditName, userName);
+        console.log(`Toolbox notes found: ${userNotes.length}`);
+
+        if (userNotes.length === 0) {
+            return [];
+        }
+
+        let toolboxConfigPage: WikiPage | undefined;
+        try {
+            toolboxConfigPage = await reddit.getWikiPage(subredditName, "toolbox");
+        } catch (error) {
+            console.log("Error retrieving Toolbox configuration.");
+            console.log(error);
+            return [];
+        }
+    
+        const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;    
+
         const results = userNotes.map(userNote => ({
             noteSource: "Toolbox",
             moderatorUsername: userNote.moderatorUsername,
@@ -426,7 +431,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
             contextPermalink: userNote.contextPermalink,
             noteType: getToolboxNoteTypeFromEnum(userNote.noteType, toolboxConfig.usernoteColors),
         }) as CombinedUserNote);
-        console.log(`Toolbox notes found: ${results.length}`);
+        
         return results;
     } catch (e) {
         console.log("Failed to retrieve Toolbox usernotes. The Toolbox wiki page may not exist on this subreddit.");
@@ -436,6 +441,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
 
 export async function sendDelayedSummary (event: ScheduledJobEvent, context: TriggerContext) {
     if (!event.data) {
+        console.log("Scheduled job has no data passed through.");
         return;
     }
 
