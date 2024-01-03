@@ -226,7 +226,8 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     // Get detail for subreddits. This is because we don't want to show counts for private subreddits that this app might
     // be installed in, but that an average person wouldn't necessarily know of. We want to protect users' privacy somewhat
     // so limit output to what a normal user would see.
-    const subredditVisibility = await Promise.all(commentList.map(item => getSubredditVisibility(context, item.subName)));
+    const subredditVisibility = await Promise.all(commentList.filter(item => item.subName !== subredditName).map(item => getSubredditVisibility(context, item.subName)));
+    subredditVisibility.push({subredditName, isVisible: true});
 
     const numberOfSubsToReportOn = await context.settings.get<number>("numberOfSubsToIncludeInSummary") ?? 10;
 
