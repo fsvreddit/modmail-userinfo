@@ -161,7 +161,7 @@ interface SubredditVisibility {
 async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<SubredditVisibility> {
     if (subredditName.startsWith("u_")) {
         // Not a subreddit - comment on user profile
-        return {subredditName, isVisible: true}
+        return {subredditName, isVisible: true};
     }
 
     // Check Redis cache for subreddit visibility.
@@ -415,12 +415,13 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
         try {
             toolboxConfigPage = await reddit.getWikiPage(subredditName, "toolbox");
         } catch (error) {
+            // This shouldn't happen if there are any Toolbox notes, but need to check.
             console.log("Error retrieving Toolbox configuration.");
             console.log(error);
             return [];
         }
-    
-        const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;    
+
+        const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;
 
         const results = userNotes.map(userNote => ({
             noteSource: "Toolbox",
@@ -431,7 +432,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
             contextPermalink: userNote.contextPermalink,
             noteType: getToolboxNoteTypeFromEnum(userNote.noteType, toolboxConfig.usernoteColors),
         }) as CombinedUserNote);
-        
+
         return results;
     } catch (e) {
         console.log("Failed to retrieve Toolbox usernotes. The Toolbox wiki page may not exist on this subreddit.");
