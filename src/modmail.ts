@@ -164,9 +164,8 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
         return {subredditName, isVisible: true}
     }
 
-    const redisKey = `subredditVisibility-${subredditName}`;
-
     // Check Redis cache for subreddit visibility.
+    const redisKey = `subredditVisibility-${subredditName}`;
     const cachedValue = await context.redis.get(redisKey);
     if (cachedValue) {
         console.log(`Visibility for ${subredditName} already cached (${cachedValue})`);
@@ -178,9 +177,9 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
         const subreddit = await context.reddit.getSubredditByName(subredditName);
         isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
 
-        // Cache the value for a day, unlikely to change that often.
+        // Cache the value for a week, unlikely to change that often.
         console.log(`Caching visibility for ${subredditName} (${JSON.stringify(isVisible)})`);
-        await context.redis.set(redisKey, JSON.stringify(isVisible), {expiration: addDays(new Date(), 1)});
+        await context.redis.set(redisKey, JSON.stringify(isVisible), {expiration: addDays(new Date(), 7)});
     } catch (error) {
         // Error retrieving subreddit. Subreddit is most likely to be public but gated due to controversial topics.
         console.log(`Could not retrieve information for /r/${subredditName}`);
