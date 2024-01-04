@@ -1,6 +1,6 @@
 import {Comment, GetConversationResponse, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
-import {addDays, addMinutes, formatDistanceToNow} from "date-fns";
+import {addDays, addSeconds, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
 import {RawSubredditConfig, RawUsernoteType} from "toolbox-devvit/dist/types/RawSubredditConfig.js";
 import _ = require("lodash");
@@ -82,7 +82,14 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
         return;
     }
 
-    const subReddit = await context.reddit.getCurrentSubreddit();
+    let subredditName: string | undefined;
+    if (event.conversationSubreddit) {
+        subredditName = event.conversationSubreddit.name;
+    } else {
+        // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit.
+        const subReddit = await context.reddit.getCurrentSubreddit();
+        subredditName = subReddit.name;
+    }
 
     // Check if user is on the ignore list.
     const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
@@ -98,7 +105,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     if (conversationResponse.conversation.participant.isMod) {
         const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
         if (!createSummaryForModerators) {
-            console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
+            console.log(`${user.username} is a moderator of /r/${subredditName}, skipping`);
             return;
         }
     }
@@ -109,19 +116,20 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     }
 
     if (sendLater) {
-        console.log("Queueing message to send one minute from now.");
+        console.log("Queueing message to send 10 seconds from now.");
         await context.scheduler.runJob({
             name: "sendDelayedSummary",
             data: {
                 conversationId: event.conversationId,
+                subredditName,
             },
-            runAt: addMinutes(new Date(), 1),
+            runAt: addSeconds(new Date(), 10),
         });
 
         return;
     }
 
-    await createAndSendSummaryModmail(context, user, subReddit.name, event.conversationId);
+    await createAndSendSummaryModmail(context, user, subredditName, event.conversationId);
 
     const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
     // If option enabled, and the message is from the participant, copy the OP's body as a new message.
@@ -153,15 +161,10 @@ async function createAndSendSummaryModmail (context: TriggerContext, user: User,
     });
 }
 
-interface SubredditVisibility {
-    subredditName: string,
-    isVisible: boolean,
-}
-
-async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<SubredditVisibility> {
+async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<boolean> {
     if (subredditName.startsWith("u_")) {
         // Not a subreddit - comment on user profile
-        return {subredditName, isVisible: true};
+        return true;
     }
 
     // Check Redis cache for subreddit visibility.
@@ -169,7 +172,7 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
     const cachedValue = await context.redis.get(redisKey);
     if (cachedValue) {
         console.log(`Visibility for ${subredditName} already cached (${cachedValue})`);
-        return {subredditName, isVisible: cachedValue === "true"};
+        return cachedValue === "true";
     }
 
     let isVisible = true;
@@ -186,7 +189,12 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
         console.log(error);
     }
 
-    return {subredditName, isVisible};
+    return isVisible;
+}
+
+interface SubCommentCount {
+    subName: string,
+    commentCount: number,
 }
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
@@ -208,36 +216,50 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     }).all();
 
     // Build up a list of subreddits and the count of comments in those subreddits
-    let commentList: Array<{subName: string, commentCount: number}> = [];
+    const subCommentCounts: SubCommentCount[] = [];
     for (const comment of userComments) {
-        const item = commentList.find(x => x.subName === comment.subredditName);
+        const item = subCommentCounts.find(x => x.subName === comment.subredditName);
         if (item) {
             // Item already in array - increment
             item.commentCount++;
         } else {
             // First comment for this subreddit - insert new item into array
-            commentList.push({
+            subCommentCounts.push({
                 subName: comment.subredditName,
                 commentCount: 1,
             });
         }
     }
 
-    // Get detail for subreddits. This is because we don't want to show counts for private subreddits that this app might
-    // be installed in, but that an average person wouldn't necessarily know of. We want to protect users' privacy somewhat
-    // so limit output to what a normal user would see.
-    const subredditVisibility = await Promise.all(commentList.filter(item => item.subName !== subredditName).map(item => getSubredditVisibility(context, item.subName)));
-    subredditVisibility.push({subredditName, isVisible: true});
-
+    // Filter comment list for subreddits for visibility. This is because we don't want to show counts for private subreddits
+    // that this app might be installed in, but that an average person wouldn't necessarily know of. We want to protect users'
+    // privacy somewhat so limit output to what a normal user would see.
     const numberOfSubsToReportOn = await context.settings.get<number>("numberOfSubsToIncludeInSummary") ?? 10;
+    console.log(`Content found in ${subCommentCounts.length} subreddits. Need to return no more than ${numberOfSubsToReportOn}`);
 
-    commentList = commentList
-        .sort((a, b) => b.commentCount - a.commentCount) // Sort descending...
-        .filter(item => item.subName === subredditName
-            || subredditVisibility.some(subreddit => subreddit.subredditName === item.subName && subreddit.isVisible)) // Exclude private subreddits
-        .slice(0, numberOfSubsToReportOn); // Then take top N entries
+    const filteredSubCommentCounts: SubCommentCount[] = [];
 
-    if (commentList.length > 0) {
+    if (numberOfSubsToReportOn > 0) {
+        for (const subCommentItem of subCommentCounts.sort((a, b) => b.commentCount - a.commentCount)) {
+            if (subCommentItem.subName === subredditName) {
+                filteredSubCommentCounts.push(subCommentItem);
+            } else {
+                // Deliberately doing call within loop so that we can limit the number of calls made.
+                // eslint-disable-next-line no-await-in-loop
+                const isSubVisible = await getSubredditVisibility(context, subCommentItem.subName);
+                if (isSubVisible) {
+                    filteredSubCommentCounts.push(subCommentItem);
+                }
+            }
+
+            // Stop checking more subs if we have enough entries.
+            if (filteredSubCommentCounts.length >= numberOfSubsToReportOn) {
+                break;
+            }
+        }
+    }
+
+    if (filteredSubCommentCounts.length > 0) {
         const subHistoryDisplayStyle = await context.settings.get<string>("subHistoryDisplayStyle") ?? "bullet";
         modmailMessage += "**Recent Comments**: ";
         if (subHistoryDisplayStyle === "bullet") {
@@ -245,9 +267,9 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         }
 
         if (subHistoryDisplayStyle === "bullet") {
-            modmailMessage += commentList.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
+            modmailMessage += filteredSubCommentCounts.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
         } else {
-            modmailMessage += commentList.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
+            modmailMessage += filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
         }
 
         modmailMessage += "\n\n";
@@ -451,9 +473,12 @@ export async function sendDelayedSummary (event: ScheduledJobEvent, context: Tri
         return;
     }
 
-    console.log("Processing delayed summary.");
+    const subredditName = event.data.subredditName as string | undefined;
+    if (!subredditName) {
+        return;
+    }
 
-    const subReddit = await context.reddit.getCurrentSubreddit();
+    console.log("Processing delayed summary.");
 
     try {
         const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
@@ -463,7 +488,7 @@ export async function sendDelayedSummary (event: ScheduledJobEvent, context: Tri
             const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
             const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-            await createAndSendSummaryModmail(context, user, subReddit.name, conversationId);
+            await createAndSendSummaryModmail(context, user, subredditName, conversationId);
             if (conversationIsArchived) {
                 await context.reddit.modMail.archiveConversation(conversationId);
             }
