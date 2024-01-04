@@ -1,7 +1,9 @@
-import {Comment, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User} from "@devvit/public-api";
+import {Comment, GetConversationResponse, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
-import {addMinutes, formatDistanceToNow} from "date-fns";
+import {addDays, addMinutes, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
+import {RawSubredditConfig, RawUsernoteType} from "toolbox-devvit/dist/types/RawSubredditConfig.js";
+import _ = require("lodash");
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
@@ -15,16 +17,36 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
         return;
     }
 
-    const conversationResponse = await context.reddit.modMail.getConversation({
-        conversationId: event.conversationId,
-    });
-
-    if (!conversationResponse.conversation) {
+    const redisKey = `processed-${event.conversationId}`;
+    const alreadyProcessed = await context.redis.get(redisKey);
+    if (alreadyProcessed) {
+        console.log("Already processed an action for this conversation. Either a reply or a duplicate trigger.");
         return;
     }
 
-    // Ensure that we are responding to the first message in the chain - only want to create a summary once.
-    if (!conversationResponse.conversation.numMessages || conversationResponse.conversation.numMessages > 1) {
+    // Make a note that we've processed this conversation.
+    await context.redis.set(redisKey, new Date().getTime().toString(), {expiration: addDays(new Date(), 7)});
+
+    let conversationResponse: GetConversationResponse | undefined;
+    try {
+        conversationResponse = await context.reddit.modMail.getConversation({
+            conversationId: event.conversationId,
+        });
+    } catch (error) {
+        console.log("Error retrieving conversation:");
+        console.log(error);
+        return;
+    }
+
+    console.log("Got conversation response");
+
+    if (!conversationResponse.conversation) {
+        console.log("No conversation");
+        return;
+    }
+
+    if (!event.messageAuthor) {
+        console.log("No message author");
         return;
     }
 
@@ -34,28 +56,51 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
         return;
     }
 
+    const messagesInConversation = Object.values(conversationResponse.conversation.messages);
+
+    const firstMessage = messagesInConversation[0];
+    console.log(`First Message ID: ${firstMessage.id ?? "undefined"}`);
+
+    // Check that the first message in the entire conversation was for this person.
+    if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
+        console.log("Message isn't the very first. Quitting");
+        return;
+    }
+
+    console.log(`Current conversation state: ${conversationResponse.conversation.state ?? "Unknown"}`);
+
     // Check to see if conversation is already archived e.g. from a ban message
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
-    const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+    let user: User | undefined;
+    try {
+        user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+    } catch (error) {
+        console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Quitting.`);
+        console.log(error);
+        return;
+    }
+
     const subReddit = await context.reddit.getCurrentSubreddit();
 
     // Check if user is on the ignore list.
     const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
-        if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
+        if (userList.some(x => x.trim().toLowerCase() === user?.username.toLowerCase())) {
             console.log(`User /u/${user.username} is on the ignore list, skipping`);
             return;
         }
     }
 
     // Check if user is a mod, and if app is configured to send summaries for mods
-    const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
-    if (conversationResponse.conversation.participant.isMod && !createSummaryForModerators) {
-        console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
-        return;
+    if (conversationResponse.conversation.participant.isMod) {
+        const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
+        if (!createSummaryForModerators) {
+            console.log(`${user.username} is a moderator of /r/${subReddit.name}, skipping`);
+            return;
+        }
     }
 
     let sendLater = false;
@@ -64,8 +109,15 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     }
 
     if (sendLater) {
-        // Store the conversation ID in the KV Store to send on a schedule.
-        await context.redis.zAdd("SendLaterQueue", {member: event.conversationId, score: new Date().getTime()});
+        console.log("Queueing message to send one minute from now.");
+        await context.scheduler.runJob({
+            name: "sendDelayedSummary",
+            data: {
+                conversationId: event.conversationId,
+            },
+            runAt: addMinutes(new Date(), 1),
+        });
+
         return;
     }
 
@@ -74,6 +126,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
     // If option enabled, and the message is from the participant, copy the OP's body as a new message.
     if (copyOPAfterSummary && !conversationIsArchived) {
+        console.log("Copying original message after summary");
         const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
         if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
             await context.reddit.modMail.reply({
@@ -106,20 +159,39 @@ interface SubredditVisibility {
 }
 
 async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<SubredditVisibility> {
+    if (subredditName.startsWith("u_")) {
+        // Not a subreddit - comment on user profile
+        return {subredditName, isVisible: true};
+    }
+
+    // Check Redis cache for subreddit visibility.
+    const redisKey = `subredditVisibility-${subredditName}`;
+    const cachedValue = await context.redis.get(redisKey);
+    if (cachedValue) {
+        console.log(`Visibility for ${subredditName} already cached (${cachedValue})`);
+        return {subredditName, isVisible: cachedValue === "true"};
+    }
+
+    let isVisible = true;
     try {
         const subreddit = await context.reddit.getSubredditByName(subredditName);
-        const isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
-        return {subredditName, isVisible};
+        isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
+
+        // Cache the value for a week, unlikely to change that often.
+        console.log(`Caching visibility for ${subredditName} (${JSON.stringify(isVisible)})`);
+        await context.redis.set(redisKey, JSON.stringify(isVisible), {expiration: addDays(new Date(), 7)});
     } catch (error) {
         // Error retrieving subreddit. Subreddit is most likely to be public but gated due to controversial topics.
         console.log(`Could not retrieve information for /r/${subredditName}`);
         console.log(error);
-        return {subredditName, isVisible: true};
     }
+
+    return {subredditName, isVisible};
 }
 
 export async function createUserSummaryModmail (context: TriggerContext, user: User, subredditName: string): Promise<string> {
-    console.log("About to create summary modmail");
+    console.log(`About to create summary modmail for ${user.username}`);
+
     let modmailMessage = `Possible relevant information for /u/${user.username}:\n\n`;
 
     modmailMessage += `**Age**: ${formatDistanceToNow(user.createdAt)}\n\n`;
@@ -154,7 +226,8 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     // Get detail for subreddits. This is because we don't want to show counts for private subreddits that this app might
     // be installed in, but that an average person wouldn't necessarily know of. We want to protect users' privacy somewhat
     // so limit output to what a normal user would see.
-    const subredditVisibility = await Promise.all(commentList.map(item => getSubredditVisibility(context, item.subName)));
+    const subredditVisibility = await Promise.all(commentList.filter(item => item.subName !== subredditName).map(item => getSubredditVisibility(context, item.subName)));
+    subredditVisibility.push({subredditName, isVisible: true});
 
     const numberOfSubsToReportOn = await context.settings.get<number>("numberOfSubsToIncludeInSummary") ?? 10;
 
@@ -171,20 +244,13 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
             modmailMessage += "\n\n";
         }
 
-        for (const item of commentList) {
-            if (subHistoryDisplayStyle === "bullet") {
-                modmailMessage += `* /r/${item.subName}: ${item.commentCount}\n`;
-            } else {
-                modmailMessage += `/r/${item.subName} (${item.commentCount}), `;
-            }
+        if (subHistoryDisplayStyle === "bullet") {
+            modmailMessage += commentList.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
+        } else {
+            modmailMessage += commentList.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
         }
 
-        if (subHistoryDisplayStyle === "bullet") {
-            modmailMessage += "\n";
-        } else {
-            // Remove trailing comma, add newlines
-            modmailMessage = `${modmailMessage.substring(0, modmailMessage.length - 2)}\n\n`;
-        }
+        modmailMessage += "\n\n";
     }
 
     const locale = await context.settings.get<string>("localeForDateOutput") ?? "en-GB";
@@ -223,11 +289,9 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     const notesResults = await Promise.all(combinedNotesRetriever);
     const allUserNotes: CombinedUserNote[] = [];
 
-    for (const resultSet of notesResults) {
-        for (const item of resultSet) {
-            if (item) {
-                allUserNotes.push(item);
-            }
+    for (const item of _.flatten(notesResults)) {
+        if (item) {
+            allUserNotes.push(item);
         }
     }
 
@@ -281,23 +345,14 @@ function getRedditNoteTypeFromEnum (noteType: string | undefined): string | unde
     }
 }
 
-function getToolboxNoteTypeFromEnum (noteType: string | undefined): string | undefined {
-    const noteTypes = [
-        {key: "gooduser", text: "Good Contributor"},
-        {key: "spamwatch", text: "Spam Watch"},
-        {key: "spamwarn", text: "Spam Warning"},
-        {key: "abusewarn", text: "Abuse Warning"},
-        {key: "ban", text: "Ban"},
-        {key: "permban", text: "Permanent Ban"},
-        {key: "botban", text: "Bot Ban"},
-    ];
-
+function getToolboxNoteTypeFromEnum (noteType: string | undefined, noteTypes: RawUsernoteType[]): string | undefined {
     const result = noteTypes.find(x => x.key === noteType);
     if (result) {
         return result.text;
     }
 }
 
+// eslint-disable-next-line require-await
 async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId: `t5_${string}` | `t1_${string}` | `t3_${string}` | undefined): Promise <Post | Comment | undefined> {
     if (!redditId || redditId.startsWith("t5")) {
         return;
@@ -346,24 +401,38 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
     }
 }
 
-async function getUserNoteFromToolboxUserNote (userNote: Usernote): Promise<CombinedUserNote> {
-    return {
-        noteSource: "Toolbox",
-        moderatorUsername: userNote.moderatorUsername,
-        text: userNote.text,
-        timestamp: userNote.timestamp,
-        username: userNote.username,
-        contextPermalink: userNote.contextPermalink,
-        noteType: getToolboxNoteTypeFromEnum(userNote.noteType),
-    };
-}
-
 async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<CombinedUserNote[]> {
     const toolbox = new ToolboxClient(reddit);
     try {
         const userNotes = await toolbox.getUsernotesOnUser(subredditName, userName);
-        const results = await Promise.all(userNotes.map(userNote => getUserNoteFromToolboxUserNote(userNote)));
-        console.log(`Toolbox notes found: ${results.length}`);
+        console.log(`Toolbox notes found: ${userNotes.length}`);
+
+        if (userNotes.length === 0) {
+            return [];
+        }
+
+        let toolboxConfigPage: WikiPage | undefined;
+        try {
+            toolboxConfigPage = await reddit.getWikiPage(subredditName, "toolbox");
+        } catch (error) {
+            // This shouldn't happen if there are any Toolbox notes, but need to check.
+            console.log("Error retrieving Toolbox configuration.");
+            console.log(error);
+            return [];
+        }
+
+        const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;
+
+        const results = userNotes.map(userNote => ({
+            noteSource: "Toolbox",
+            moderatorUsername: userNote.moderatorUsername,
+            text: userNote.text,
+            timestamp: userNote.timestamp,
+            username: userNote.username,
+            contextPermalink: userNote.contextPermalink,
+            noteType: getToolboxNoteTypeFromEnum(userNote.noteType, toolboxConfig.usernoteColors),
+        }) as CombinedUserNote);
+
         return results;
     } catch (e) {
         console.log("Failed to retrieve Toolbox usernotes. The Toolbox wiki page may not exist on this subreddit.");
@@ -371,7 +440,21 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
     }
 }
 
-async function sendDelayedSummary (conversationId: string, subName: string, context: TriggerContext) {
+export async function sendDelayedSummary (event: ScheduledJobEvent, context: TriggerContext) {
+    if (!event.data) {
+        console.log("Scheduled job has no data passed through.");
+        return;
+    }
+
+    const conversationId = event.data.conversationId as string | undefined;
+    if (!conversationId) {
+        return;
+    }
+
+    console.log("Processing delayed summary.");
+
+    const subReddit = await context.reddit.getCurrentSubreddit();
+
     try {
         const conversationResponse = await context.reddit.modMail.getConversation({conversationId});
 
@@ -380,27 +463,14 @@ async function sendDelayedSummary (conversationId: string, subName: string, cont
             const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
             const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-            await createAndSendSummaryModmail(context, user, subName, conversationId);
+            await createAndSendSummaryModmail(context, user, subReddit.name, conversationId);
             if (conversationIsArchived) {
                 await context.reddit.modMail.archiveConversation(conversationId);
             }
         }
-
-        await context.redis.zRem("SendLaterQueue", [conversationId]);
     } catch (error) {
         // If one fails, log to console and continue.
         console.log(`Error sending modmail summary for conversation ${conversationId}!`);
         console.log(error);
     }
-}
-
-export async function sendDelayedSummaries (event: ScheduledJobEvent, context: TriggerContext) {
-    const keys = await context.redis.zRange("SendLaterQueue", 0, addMinutes(new Date(), -1).getTime(), {by: "score"});
-    if (keys.length === 0) {
-        return;
-    }
-
-    const subReddit = await context.reddit.getCurrentSubreddit();
-
-    await Promise.all(keys.map(key => sendDelayedSummary(key.member, subReddit.name, context)));
 }

@@ -1,5 +1,5 @@
 import {Devvit} from "@devvit/public-api";
-import {onModmailReceiveEvent, sendDelayedSummaries} from "./modmail.js";
+import {onModmailReceiveEvent, sendDelayedSummary} from "./modmail.js";
 
 Devvit.addSettings([
     {
@@ -22,7 +22,7 @@ Devvit.addSettings([
         label: "Number of subreddits to include in comment summary",
         helpText: "Limit the number of subreddits listed to this number. If a user participates in lots of subreddits, a large number might be distracting",
         defaultValue: 10,
-        onValidate: async ({value}) => {
+        onValidate: ({value}) => {
             if (!value || value < 0 || value > 100) {
                 return "Value must be between 0 and 100";
             }
@@ -43,7 +43,7 @@ Devvit.addSettings([
         name: "numberOfCommentsToInclude",
         label: "Number of recently removed comments to show in summary",
         defaultValue: 3,
-        onValidate: async ({value}) => {
+        onValidate: ({value}) => {
             if (!value || value < 0 || value > 100) {
                 return "Value must be between 0 and 100";
             }
@@ -72,7 +72,7 @@ Devvit.addSettings([
             {value: "ja-JP", label: "year/month/date"},
         ],
         multiSelect: false,
-        onValidate: async ({value}) => {
+        onValidate: ({value}) => {
             if (!value) {
                 "You must select a date format";
             }
@@ -100,8 +100,8 @@ Devvit.addTrigger({
 });
 
 Devvit.addSchedulerJob({
-    name: "sendDelayedSummaries",
-    onRun: sendDelayedSummaries,
+    name: "sendDelayedSummary",
+    onRun: sendDelayedSummary,
 });
 
 Devvit.addTrigger({
@@ -109,35 +109,12 @@ Devvit.addTrigger({
     async onEvent (_, context) {
         // Clear down existing scheduler jobs, if any, in case a new release changes the schedule
         const currentJobs = await context.scheduler.listJobs();
-        for (const job of currentJobs) {
-            console.log("Deleted a job");
-            await context.scheduler.cancelJob(job.id);
-        }
-
-        // kvStore migration - to be removed in a future release when kvStore is fully deprecated.
-        const migrationDone = await context.redis.get("RedisMigrationDone");
-        if (!migrationDone) {
-            console.log("Migrating from kvStore to Redis");
-            const keys = await context.kvStore.list();
-            for (const key of keys.filter(key => key !== "SendLaterQueue")) {
-                const value = await context.kvStore.get<number>(key) ?? 0;
-                await context.redis.zAdd("SendLaterQueue", {member: key, score: value});
-                await context.redis.del(key);
-            }
-            await context.redis.set("RedisMigrationDone", "true");
-            console.log(`Redis migration completed. ${keys.length} keys migrated.`);
-        }
-
-        await context.scheduler.runJob({
-            cron: "* * * * *", // Every minute of every day
-            name: "sendDelayedSummaries",
-        });
+        await Promise.all(currentJobs.map(job => context.scheduler.cancelJob(job.id)));
     },
 });
 
 Devvit.configure({
     redditAPI: true,
-    kvStore: true,
     redis: true,
 });
 
