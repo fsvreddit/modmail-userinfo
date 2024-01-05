@@ -30,4 +30,8 @@ Potential use cases:
 
 **Copy initial message as new message after summary** - makes a copy of the original message after the summary. This means that the overview of the inbox makes more sense than just seeing a list of user summaries, but can increase clutter.
 
-**Delay before adding summary after banning a user** - Waits two minutes after banning a user before adding the summary. This can help if you have mod actions that ban at the same time as removing comments, in some cases the removed comment may be missed from the summary if the modmail summary sends too fast.
+**Delay before adding summary after banning a user** - Waits 10 seconds after banning a user before adding the summary. This can help if you have mod actions that ban at the same time as removing comments, in some cases the removed comment may be missed from the summary if the modmail summary sends too fast.
+
+## Recent changes
+
+The 1.0.4 release doesn't change functionality compared to previous releases, but improves reliability and stability, as well as reduces API resource usage. If you have had issues with the app not responding to new modmail posts, or posting summaries more than once, this release fixes those issues.
