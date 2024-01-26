@@ -36,18 +36,32 @@ Devvit.addSettings([
             {label: "Bulleted list (one subreddit per line)", value: "bullet"},
             {label: "Single paragraph (all subreddits on one line - more compact)", value: "singlepara"},
         ],
+        defaultValue: ["singlepara"],
         multiSelect: false,
     },
     {
         type: "number",
         name: "numberOfCommentsToInclude",
         label: "Number of recently removed comments to show in summary",
+        helpText: "Summary will only include comments removed by a moderator. Comments filtered or removed by AutoModerator will not show.",
         defaultValue: 3,
         onValidate: ({value}) => {
-            if (!value || value < 0 || value > 100) {
-                return "Value must be between 0 and 100";
+            if (!value || value < 0 || value > 10) {
+                return "Value must be between 0 and 10";
             }
         },
+    },
+    {
+        type: "select",
+        name: "includeRecentPosts",
+        label: "Include up to 3 recent posts in summary",
+        options: [
+            {label: "None", value: "none"},
+            {label: "Visible and Removed posts", value: "all"},
+            {label: "Removed posts only", value: "removed"},
+        ],
+        defaultValue: ["none"],
+        multiSelect: false,
     },
     {
         type: "boolean",
@@ -60,7 +74,7 @@ Devvit.addSettings([
         name: "usernamesToIgnore",
         label: "Do not create summaries for these users",
         helpText: "Comma-separated, not case sensitive",
-        defaultValue: "Automoderator,ModSupportBot",
+        defaultValue: "AutoModerator,ModSupportBot",
     },
     {
         type: "select",
@@ -71,6 +85,7 @@ Devvit.addSettings([
             {value: "en-US", label: "month/date/year"},
             {value: "ja-JP", label: "year/month/date"},
         ],
+        defaultValue: ["en-US"],
         multiSelect: false,
         onValidate: ({value}) => {
             if (!value) {
@@ -105,9 +120,9 @@ Devvit.addSchedulerJob({
 });
 
 Devvit.addTrigger({
-    events: ["AppInstall", "AppUpgrade"],
+    event: "AppUpgrade",
     async onEvent (_, context) {
-        // Clear down existing scheduler jobs, if any, in case a new release changes the schedule
+        // Clear down existing scheduler jobs, if any. Previous app versions used the scheduler.
         const currentJobs = await context.scheduler.listJobs();
         await Promise.all(currentJobs.map(job => context.scheduler.cancelJob(job.id)));
     },

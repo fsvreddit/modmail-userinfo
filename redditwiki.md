@@ -6,13 +6,16 @@ When a user sends a modmail to a subreddit, this app replies to the modmail (vis
 * NSFW Yes/No
 * Recent comment summary (subreddit name and comment count) in other subreddits (if any)
 * Recently removed comments in the current subreddit (if any)
-* Toolbox usernotes (if any)
+* Recent subreddit posts (if any)
+* Toolbox or native usernotes (if any)
 
 Potential use cases:
 
 * If a user deletes their account, you can still find details about past interactions in Modmail
-* Quickly get context about a user's recent removed comments, saving time looking through their history
-* Check for possible brigading or other negative interactions via recent interactions in other subreddits 
+* Quickly get context about a user's recent removed comments and subreddit posts, saving time looking through their history
+* Check for possible brigading or other negative interactions via recent interactions in other subreddits
+
+Note: If a user is shadowbanned or suspended, then no summary will be created. It's not possible to retrieve information about these users and so no useful information could be included.
 
 ## Configuration options
 
@@ -21,6 +24,8 @@ Potential use cases:
 **Include Toolbox usernotes in Modmail User Summary** - toggles whether Toolbox user notes should display in the summary. You may wish to turn this off if you have migrated away from Toolbox or have never used it.
 
 **Number of recently removed comments to show in summary** - the app will include the details of this many removed comments in the user's summary. If the user has no removed comments, then none will appear.
+
+**Include up to 3 recent posts in summary** - gives the option to include up to three subreddit posts from the user.
 
 **Create modmail summary for subreddit moderators** - by default, the app won't create the modmail summary for moderators of the sub, but you can turn this on if you wish (e.g. for testing).
 
@@ -35,3 +40,5 @@ Potential use cases:
 ## Recent changes
 
 The 1.0.4 release doesn't change functionality compared to previous releases, but improves reliability and stability, as well as reduces API resource usage. If you have had issues with the app not responding to new modmail posts, or posting summaries more than once, this release fixes those issues.
+
+The 1.1 release adds a function to include recent subreddit posts from the user in the summary.
