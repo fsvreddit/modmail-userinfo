@@ -4,6 +4,7 @@ import {addDays, addSeconds, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
 import {RawSubredditConfig, RawUsernoteType} from "toolbox-devvit/dist/types/RawSubredditConfig.js";
 import _ = require("lodash");
+import markdownEscape from "markdown-escape";
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
@@ -27,7 +28,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     // Make a note that we've processed this conversation.
     await context.redis.set(redisKey, new Date().getTime().toString(), {expiration: addDays(new Date(), 7)});
 
-    let conversationResponse: GetConversationResponse | undefined;
+    let conversationResponse: GetConversationResponse;
     try {
         conversationResponse = await context.reddit.modMail.getConversation({
             conversationId: event.conversationId,
@@ -73,16 +74,16 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
-    let user: User | undefined;
+    let user: User;
     try {
         user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
     } catch (error) {
-        console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Quitting.`);
+        console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Likely shadowbanned or suspended.`);
         console.log(error);
         return;
     }
 
-    let subredditName: string | undefined;
+    let subredditName: string;
     if (event.conversationSubreddit) {
         subredditName = event.conversationSubreddit.name;
     } else {
@@ -95,7 +96,7 @@ export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, con
     const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
-        if (userList.some(x => x.trim().toLowerCase() === user?.username.toLowerCase())) {
+        if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
             console.log(`User /u/${user.username} is on the ignore list, skipping`);
             return;
         }
@@ -204,10 +205,10 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
     modmailMessage += `**Age**: ${formatDistanceToNow(user.createdAt)}\n\n`;
 
-    modmailMessage += `**Sitewide Karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
+    modmailMessage += `**Sitewide karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
 
     if (user.nsfw) {
-        modmailMessage += "**NSFW Account**: Yes\n\n";
+        modmailMessage += "**NSFW account**: Yes\n\n";
     }
 
     const userComments = await user.getComments({
@@ -261,7 +262,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
     if (filteredSubCommentCounts.length > 0) {
         const subHistoryDisplayStyle = await context.settings.get<string>("subHistoryDisplayStyle") ?? "bullet";
-        modmailMessage += "**Recent Comments**: ";
+        modmailMessage += "**Recent comments across Reddit**: ";
         if (subHistoryDisplayStyle === "bullet") {
             modmailMessage += "\n\n";
         }
@@ -296,7 +297,25 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         }
     }
 
-    const combinedNotesRetriever: Promise<(CombinedUserNote | undefined)[]>[] = [];
+    const includeRecentPosts = (await context.settings.get<string[]>("includeRecentPosts") ?? ["none"])[0];
+    if (includeRecentPosts !== "none") {
+        let recentPosts = await context.reddit.getPostsByUser({
+            username: user.username,
+            sort: "new",
+            limit: 100,
+        }).all();
+
+        recentPosts = recentPosts.filter(post => post.subredditName === subredditName && (post.removed || post.spam || includeRecentPosts === "all")).slice(0, 3);
+        if (recentPosts.length > 0) {
+            modmailMessage += `**Recent ${includeRecentPosts === "removed" ? "removed " : ""} posts on ${subredditName}**\n\n`;
+            for (const post of recentPosts) {
+                modmailMessage += `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})\n`;
+            }
+            modmailMessage += "\n";
+        }
+    }
+
+    const combinedNotesRetriever: Promise<CombinedUserNote[]>[] = [];
 
     const shouldIncludeNativeUsernotes = await context.settings.get<boolean>("includeNativeNotes");
     if (shouldIncludeNativeUsernotes) {
@@ -309,18 +328,12 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     }
 
     const notesResults = await Promise.all(combinedNotesRetriever);
-    const allUserNotes: CombinedUserNote[] = [];
-
-    for (const item of _.flatten(notesResults)) {
-        if (item) {
-            allUserNotes.push(item);
-        }
-    }
+    const allUserNotes = _.flatten(notesResults);
 
     if (allUserNotes.length > 0) {
         allUserNotes.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-        modmailMessage += "**User Notes**:\n\n";
+        modmailMessage += "**User notes**:\n\n";
 
         for (const note of allUserNotes) {
             let modnote = "";
@@ -375,7 +388,7 @@ function getToolboxNoteTypeFromEnum (noteType: string | undefined, noteTypes: Ra
 }
 
 // eslint-disable-next-line require-await
-async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId: `t5_${string}` | `t1_${string}` | `t3_${string}` | undefined): Promise <Post | Comment | undefined> {
+async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId?: `t5_${string}` | `t1_${string}` | `t3_${string}`): Promise <Post | Comment | undefined> {
     if (!redditId || redditId.startsWith("t5")) {
         return;
     } else if (redditId.startsWith("t1")) {
@@ -406,7 +419,7 @@ async function getUserNoteFromRedditModNote (reddit: RedditAPIClient, modNote: M
     };
 }
 
-async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<(CombinedUserNote | undefined)[]> {
+async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<CombinedUserNote[]> {
     try {
         const modNotes = await reddit.getModNotes({
             subreddit: subredditName,
@@ -416,7 +429,7 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
 
         const results = await Promise.all(modNotes.map(modNote => getUserNoteFromRedditModNote(reddit, modNote)));
         console.log(`Native mod notes found: ${results.length}`);
-        return results;
+        return _.compact(results);
     } catch (error) {
         console.log(error); // Currently, this may crash if there are any notes without a permalink
         return [];
@@ -433,7 +446,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
             return [];
         }
 
-        let toolboxConfigPage: WikiPage | undefined;
+        let toolboxConfigPage: WikiPage;
         try {
             toolboxConfigPage = await reddit.getWikiPage(subredditName, "toolbox");
         } catch (error) {
