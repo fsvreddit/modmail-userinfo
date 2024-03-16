@@ -57,10 +57,10 @@ export const appSettings: SettingsFormField[] = [
         name: SettingsName.SubHistoryDisplayStyle,
         label: "Output style for subreddit history",
         options: [
-            {label: "Bulleted list (one subreddit per line)", value: "bullet"},
-            {label: "Single paragraph (all subreddits on one line - more compact)", value: "singlepara"},
+            {label: "Bulleted list (one subreddit per line)", value: SubHistoryDisplayStyleOption.Bullet},
+            {label: "Single paragraph (all subreddits on one line - more compact)", value: SubHistoryDisplayStyleOption.SingleParagraph},
         ],
-        defaultValue: ["singlepara"],
+        defaultValue: [SubHistoryDisplayStyleOption.SingleParagraph],
         multiSelect: false,
     },
     {
