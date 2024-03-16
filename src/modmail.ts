@@ -5,6 +5,7 @@ import {ToolboxClient, Usernote} from "toolbox-devvit";
 import {RawSubredditConfig, RawUsernoteType} from "toolbox-devvit/dist/types/RawSubredditConfig.js";
 import _ = require("lodash");
 import markdownEscape from "markdown-escape";
+import {IncludeRecentPostsOption, SettingsName, SubHistoryDisplayStyleOption} from "./settings.js";
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
@@ -92,8 +93,10 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         subredditName = subReddit.name;
     }
 
+    const settings = await context.settings.getAll();
+
     // Check if user is on the ignore list.
-    const usersToIgnore = await context.settings.get<string>("usernamesToIgnore");
+    const usersToIgnore = settings[SettingsName.UsernamesToIgnore] as string | undefined;
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
         if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
@@ -104,7 +107,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     // Check if user is a mod, and if app is configured to send summaries for mods
     if (conversationResponse.conversation.participant.isMod) {
-        const createSummaryForModerators = await context.settings.get<boolean>("createSummaryForModerators");
+        const createSummaryForModerators = settings[SettingsName.CreateSummaryForModerators] as boolean ?? false;
         if (!createSummaryForModerators) {
             console.log(`${user.username} is a moderator of /r/${subredditName}, skipping`);
             return;
@@ -113,7 +116,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     let sendLater = false;
     if (conversationIsArchived) {
-        sendLater = await context.settings.get<boolean>("delaySendAfterBan") ?? false;
+        sendLater = settings[SettingsName.DelaySendAfterBan] as boolean ?? false;
     }
 
     if (sendLater) {
@@ -132,7 +135,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     await createAndSendSummaryModmail(context, user, subredditName, event.conversationId);
 
-    const copyOPAfterSummary = await context.settings.get<boolean>("copyOPAfterSummary");
+    const copyOPAfterSummary = settings[SettingsName.CopyOPAfterSummary] as boolean ?? false;
     // If option enabled, and the message is from the participant, copy the OP's body as a new message.
     if (copyOPAfterSummary && !conversationIsArchived) {
         console.log("Copying original message after summary");
@@ -235,7 +238,9 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     // Filter comment list for subreddits for visibility. This is because we don't want to show counts for private subreddits
     // that this app might be installed in, but that an average person wouldn't necessarily know of. We want to protect users'
     // privacy somewhat so limit output to what a normal user would see.
-    const numberOfSubsToReportOn = await context.settings.get<number>("numberOfSubsToIncludeInSummary") ?? 10;
+    const settings = await context.settings.getAll();
+
+    const numberOfSubsToReportOn = settings[SettingsName.NumberOfCommentsToInclude] as number ?? 10;
     console.log(`Content found in ${subCommentCounts.length} subreddits. Need to return no more than ${numberOfSubsToReportOn}`);
 
     const filteredSubCommentCounts: SubCommentCount[] = [];
@@ -261,13 +266,13 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     }
 
     if (filteredSubCommentCounts.length > 0) {
-        const subHistoryDisplayStyle = await context.settings.get<string>("subHistoryDisplayStyle") ?? "bullet";
+        const subHistoryDisplayStyle = settings[SettingsName.SubHistoryDisplayStyle] as string[] ?? [SubHistoryDisplayStyleOption.SingleParagraph];
         modmailMessage += "**Recent comments across Reddit**: ";
-        if (subHistoryDisplayStyle === "bullet") {
+        if (subHistoryDisplayStyle[0] === SubHistoryDisplayStyleOption.Bullet) {
             modmailMessage += "\n\n";
         }
 
-        if (subHistoryDisplayStyle === "bullet") {
+        if (subHistoryDisplayStyle[0] === SubHistoryDisplayStyleOption.Bullet) {
             modmailMessage += filteredSubCommentCounts.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
         } else {
             modmailMessage += filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
@@ -276,9 +281,9 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         modmailMessage += "\n\n";
     }
 
-    const locale = await context.settings.get<string>("localeForDateOutput") ?? "en-GB";
+    const locale = settings[SettingsName.LocaleForDateOutput] as string[] ?? ["en-US"];
 
-    const numberOfRemovedCommentsToInclude = await context.settings.get<number>("numberOfCommentsToInclude") ?? 3;
+    const numberOfRemovedCommentsToInclude = settings[SettingsName.NumberOfCommentsToInclude] as number ?? 3;
 
     if (numberOfRemovedCommentsToInclude > 0) {
         const filteredComments = userComments
@@ -289,7 +294,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
             modmailMessage += "**Recently removed comments**:\n\n";
 
             for (const comment of filteredComments) {
-                modmailMessage += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink}):\n\n`;
+                modmailMessage += `[${comment.createdAt.toLocaleDateString(locale[0])}](${comment.permalink}):\n\n`;
                 modmailMessage += `> ${comment.body.split("\n").join("\n> ")}\n\n`; // string.replaceAll not available without es2021
             }
 
@@ -297,19 +302,19 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         }
     }
 
-    const includeRecentPosts = (await context.settings.get<string[]>("includeRecentPosts") ?? ["none"])[0];
-    if (includeRecentPosts !== "none") {
+    const includeRecentPosts = settings[SettingsName.IncludeRecentPosts] as string[] ?? [IncludeRecentPostsOption.None];
+    if (includeRecentPosts[0] !== IncludeRecentPostsOption.None) {
         let recentPosts = await context.reddit.getPostsByUser({
             username: user.username,
             sort: "new",
             limit: 100,
         }).all();
 
-        recentPosts = recentPosts.filter(post => post.subredditName === subredditName && (post.removed || post.spam || includeRecentPosts === "all")).slice(0, 3);
+        recentPosts = recentPosts.filter(post => post.subredditName === subredditName && (post.removed || post.spam || includeRecentPosts[0] === IncludeRecentPostsOption.VisibleAndRemoved)).slice(0, 3);
         if (recentPosts.length > 0) {
-            modmailMessage += `**Recent ${includeRecentPosts === "removed" ? "removed " : ""} posts on ${subredditName}**\n\n`;
+            modmailMessage += `**Recent ${includeRecentPosts[0] === IncludeRecentPostsOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
             for (const post of recentPosts) {
-                modmailMessage += `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})\n`;
+                modmailMessage += `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale[0])})\n`;
             }
             modmailMessage += "\n";
         }
@@ -317,12 +322,12 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
     const combinedNotesRetriever: Promise<CombinedUserNote[]>[] = [];
 
-    const shouldIncludeNativeUsernotes = await context.settings.get<boolean>("includeNativeNotes");
+    const shouldIncludeNativeUsernotes = settings[SettingsName.IncludeNativeNotes] as boolean ?? false;
     if (shouldIncludeNativeUsernotes) {
         combinedNotesRetriever.push(getRedditModNotesAsUserNotes(context.reddit, subredditName, user.username));
     }
 
-    const shouldIncludeToolboxUsernotes = await context.settings.get<boolean>("includeToolboxNotes");
+    const shouldIncludeToolboxUsernotes = settings[SettingsName.IncludeToolboxNotes] as boolean ?? false;
     if (shouldIncludeToolboxUsernotes) {
         combinedNotesRetriever.push(getToolboxNotesAsUserNotes(context.reddit, subredditName, user.username));
     }
@@ -347,7 +352,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
                 modnote += note.text;
             }
 
-            modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale)}`;
+            modnote += ` by ${note.moderatorUsername} on ${note.timestamp.toLocaleDateString(locale[0])}`;
 
             if (shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes) {
                 // Include whether these are Toolbox or Native notes, if both are configured.
