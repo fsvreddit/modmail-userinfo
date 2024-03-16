@@ -1,4 +1,4 @@
-import {Comment, GetConversationResponse, ModMailConversationState, ModNote, OnTriggerEvent, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
+import {Comment, GetConversationResponse, ModMailConversationState, ModNote, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage} from "@devvit/public-api";
 import {ModMail} from "@devvit/protos";
 import {addDays, addSeconds, formatDistanceToNow} from "date-fns";
 import {ToolboxClient, Usernote} from "toolbox-devvit";
@@ -10,7 +10,7 @@ interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox"
 }
 
-export async function onModmailReceiveEvent (event: OnTriggerEvent<ModMail>, context: TriggerContext) {
+export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     console.log("Received modmail trigger event.");
 
     if (event.messageAuthor && event.messageAuthor.id === context.appAccountId) {
