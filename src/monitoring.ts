@@ -1,9 +1,9 @@
-import { ScheduledJobEvent, TriggerContext } from "@devvit/public-api";
+import { TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
 import { AppSetting } from "./settings.js";
 
-export async function checkIfAppIsWorking (_: ScheduledJobEvent, context: TriggerContext) {
+export async function checkIfAppIsWorking (_: unknown, context: TriggerContext) {
     const currentSubreddit = await context.reddit.getCurrentSubreddit();
     const settings = await context.settings.getAll();
 
