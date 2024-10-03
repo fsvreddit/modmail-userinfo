@@ -135,7 +135,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     }
 
     const delaySendAfterBan = settings[AppSetting.DelaySendAfterBan] as boolean | undefined ?? false;
-    const delaySendAfterOtherModmails = settings[AppSetting.DelaySendAfterOtherModmails] as boolean | undefined ?? false;
+    const delaySendAfterOtherModmails = settings[AppSetting.DelaySendAfterIncomingModmails] as boolean | undefined ?? false;
 
     if ((conversationIsArchived && delaySendAfterBan) || (!conversationIsArchived && delaySendAfterOtherModmails)) {
         console.log("Queueing message to send 10 seconds from now.");
