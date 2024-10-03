@@ -1,4 +1,4 @@
-import { Comment, GetConversationResponse, JSONObject, ModMailConversationState, ModNote, Post, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage } from "@devvit/public-api";
+import { GetConversationResponse, JSONObject, ModMailConversationState, ModNote, RedditAPIClient, ScheduledJobEvent, TriggerContext, User, WikiPage } from "@devvit/public-api";
 import { ModMail } from "@devvit/protos";
 import { addDays, addSeconds, formatDistanceToNow } from "date-fns";
 import { ToolboxClient, Usernote } from "toolbox-devvit";
@@ -6,8 +6,8 @@ import { RawSubredditConfig, RawUsernoteType } from "toolbox-devvit/dist/types/R
 import _ from "lodash";
 import markdownEscape from "markdown-escape";
 import { IncludeRecentContentOption, AppSetting, SubHistoryDisplayStyleOption } from "./settings.js";
-import { ThingPrefix } from "./utility.js";
 import { scheduleJobs } from "./monitoring.js";
+import { getPostOrCommentFromRedditId } from "./utility.js";
 
 interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox";
@@ -414,16 +414,6 @@ function getToolboxNoteTypeFromEnum (noteType: string | undefined, noteTypes: Ra
     const result = noteTypes.find(x => x.key === noteType);
     if (result) {
         return result.text;
-    }
-}
-
-async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId?: `t5_${string}` | `t1_${string}` | `t3_${string}`): Promise <Post | Comment | undefined> {
-    if (!redditId || redditId.startsWith(ThingPrefix.Subreddit)) {
-        return;
-    } else if (redditId.startsWith(ThingPrefix.Comment)) {
-        return reddit.getCommentById(redditId);
-    } else if (redditId.startsWith(ThingPrefix.Post)) {
-        return reddit.getPostById(redditId);
     }
 }
 
