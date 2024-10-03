@@ -20,12 +20,14 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.9.0",
+    "@stylistic/eslint-plugin": "^2.8.0",
     "@types/eslint__eslintrc": "^2.1.2",
     "@types/eslint__js": "^8.42.3",
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
     "eslint": "^9.9.0",
     "typescript": "5.5.2",
+    "typescript-eslint": "^8.4.0",
     "vitest": "^2.0.5"
   }
 }

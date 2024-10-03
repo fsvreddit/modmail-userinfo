@@ -1,7 +1,7 @@
-import {ScheduledJobEvent, TriggerContext} from "@devvit/public-api";
-import {AppInstall, AppUpgrade} from "@devvit/protos";
-import {formatDistanceToNow} from "date-fns";
-import {AppSetting} from "./settings.js";
+import { ScheduledJobEvent, TriggerContext } from "@devvit/public-api";
+import { AppInstall, AppUpgrade } from "@devvit/protos";
+import { formatDistanceToNow } from "date-fns";
+import { AppSetting } from "./settings.js";
 
 export async function checkIfAppIsWorking (_: ScheduledJobEvent, context: TriggerContext) {
     const currentSubreddit = await context.reddit.getCurrentSubreddit();
@@ -72,7 +72,7 @@ async function sendMessageToWebhook (webhookUrl: string, message: string) {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(params),
-        }
+        },
     );
 }
 

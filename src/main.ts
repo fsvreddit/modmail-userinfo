@@ -1,7 +1,7 @@
-import {Devvit} from "@devvit/public-api";
-import {onModmailReceiveEvent, sendDelayedSummary} from "./modmail.js";
-import {appSettings} from "./settings.js";
-import {checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall} from "./monitoring.js";
+import { Devvit } from "@devvit/public-api";
+import { onModmailReceiveEvent, sendDelayedSummary } from "./modmail.js";
+import { appSettings } from "./settings.js";
+import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall } from "./monitoring.js";
 
 Devvit.addSettings(appSettings);
 

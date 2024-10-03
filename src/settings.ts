@@ -1,4 +1,4 @@
-import {SettingsFormField, SettingsFormFieldValidatorEvent} from "@devvit/public-api";
+import { SettingsFormField, SettingsFormFieldValidatorEvent } from "@devvit/public-api";
 
 export enum AppSetting {
     IncludeNativeNotes = "includeNativeNotes",
@@ -34,6 +34,7 @@ export enum IncludeRecentContentOption {
     Removed = "removed",
 }
 
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEvent<string[]>): void | string {
     if (!event.value || event.value.length !== 1) {
         return "You must choose an option";
@@ -67,7 +68,7 @@ export const appSettings: SettingsFormField[] = [
         label: "Number of subreddits to include in comment summary",
         helpText: "Limit the number of subreddits listed to this number. If a user participates in lots of subreddits, a large number might be distracting",
         defaultValue: 10,
-        onValidate: ({value}) => {
+        onValidate: ({ value }) => {
             if (value && (value < 0 || value > 100)) {
                 return "Value must be between 0 and 100";
             }
@@ -78,8 +79,8 @@ export const appSettings: SettingsFormField[] = [
         name: AppSetting.SubHistoryDisplayStyle,
         label: "Output style for subreddit history",
         options: [
-            {label: "Bulleted list (one subreddit per line)", value: SubHistoryDisplayStyleOption.Bullet},
-            {label: "Single paragraph (all subreddits on one line - more compact)", value: SubHistoryDisplayStyleOption.SingleParagraph},
+            { label: "Bulleted list (one subreddit per line)", value: SubHistoryDisplayStyleOption.Bullet },
+            { label: "Single paragraph (all subreddits on one line - more compact)", value: SubHistoryDisplayStyleOption.SingleParagraph },
         ],
         defaultValue: [SubHistoryDisplayStyleOption.SingleParagraph],
         multiSelect: false,
@@ -89,9 +90,9 @@ export const appSettings: SettingsFormField[] = [
         name: AppSetting.IncludeRecentComments,
         label: "Include recent comments in summary",
         options: [
-            {label: "None", value: IncludeRecentContentOption.None},
-            {label: "Visible and Removed comments", value: IncludeRecentContentOption.VisibleAndRemoved},
-            {label: "Removed comments only", value: IncludeRecentContentOption.Removed},
+            { label: "None", value: IncludeRecentContentOption.None },
+            { label: "Visible and Removed comments", value: IncludeRecentContentOption.VisibleAndRemoved },
+            { label: "Removed comments only", value: IncludeRecentContentOption.Removed },
         ],
         defaultValue: [IncludeRecentContentOption.Removed],
         multiSelect: false,
@@ -102,7 +103,7 @@ export const appSettings: SettingsFormField[] = [
         name: AppSetting.NumberOfCommentsToInclude,
         label: "Number of recent comments to show in summary",
         defaultValue: 3,
-        onValidate: ({value}) => {
+        onValidate: ({ value }) => {
             if (value && (value < 0 || value > 10)) {
                 return "Value must be between 0 and 10";
             }
@@ -113,9 +114,9 @@ export const appSettings: SettingsFormField[] = [
         name: AppSetting.IncludeRecentPosts,
         label: "Include recent posts in summary",
         options: [
-            {label: "None", value: IncludeRecentContentOption.None},
-            {label: "Visible and Removed posts", value: IncludeRecentContentOption.VisibleAndRemoved},
-            {label: "Removed posts only", value: IncludeRecentContentOption.Removed},
+            { label: "None", value: IncludeRecentContentOption.None },
+            { label: "Visible and Removed posts", value: IncludeRecentContentOption.VisibleAndRemoved },
+            { label: "Removed posts only", value: IncludeRecentContentOption.Removed },
         ],
         defaultValue: [IncludeRecentContentOption.None],
         multiSelect: false,
@@ -163,9 +164,9 @@ export const appSettings: SettingsFormField[] = [
         name: AppSetting.LocaleForDateOutput,
         label: "Format for date output",
         options: [
-            {value: "en-GB", label: "date/month/year"},
-            {value: "en-US", label: "month/date/year"},
-            {value: "ja-JP", label: "year/month/date"},
+            { value: "en-GB", label: "date/month/year" },
+            { value: "en-US", label: "month/date/year" },
+            { value: "ja-JP", label: "year/month/date" },
         ],
         defaultValue: ["en-US"],
         multiSelect: false,
