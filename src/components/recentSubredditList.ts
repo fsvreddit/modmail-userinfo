@@ -110,14 +110,10 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     const subredditName = await getSubredditName(context);
     if (numberOfSubsToReportOn > 0) {
         for (const subCommentItem of subCommentCounts.sort((a, b) => b.commentCount - a.commentCount)) {
-            if (subCommentItem.subName === subredditName) {
+            // Deliberately doing call within loop so that we can limit the number of calls made.
+            const isSubVisible = await getSubredditVisibility(context, subCommentItem.subName);
+            if (subCommentItem.subName === subredditName || isSubVisible) {
                 filteredSubCommentCounts.push(subCommentItem);
-            } else {
-                // Deliberately doing call within loop so that we can limit the number of calls made.
-                const isSubVisible = await getSubredditVisibility(context, subCommentItem.subName);
-                if (isSubVisible) {
-                    filteredSubCommentCounts.push(subCommentItem);
-                }
             }
 
             // Stop checking more subs if we have enough entries.

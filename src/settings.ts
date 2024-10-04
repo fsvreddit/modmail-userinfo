@@ -22,13 +22,13 @@ export const generalSettings: SettingsFormField = {
             name: GeneralSetting.TextForStartOfSummary,
             label: "Text for start of summary",
             helpText: "Leave blank to disable. Placeholder supported: {{username}}",
-            defaultValue: "Possible relevant information for /u/{{username}}",
+            defaultValue: "Possible relevant information for /u/{{username}}:",
         },
         {
             type: "boolean",
             name: GeneralSetting.CopyOPAfterSummary,
             label: "Copy initial message as new message after summary",
-            helpText: "Helps make the preview of modmails more useful by allowing you to see the initial message text. Sent on incoming modmail only.",
+            helpText: "Helps make the preview of modmails more useful by allowing you to see the initial message text. Created on incoming modmail only.",
             defaultValue: false,
         },
         {
@@ -48,6 +48,7 @@ export const generalSettings: SettingsFormField = {
             type: "boolean",
             name: GeneralSetting.CreateSummaryOnOutgoingMessages,
             label: "Create modmail summary on outgoing modmails",
+            helpText: "This includes automated outgoing modmail, such as ban messages, Approved User notifications and more.",
             defaultValue: true,
         },
         {

@@ -19,3 +19,9 @@ export async function getSubredditName (context: TriggerContext): Promise<string
     // This shouldn't happen, but add a fallback just in case.
     return (await context.reddit.getCurrentSubreddit()).name;
 }
+
+export async function userIsMod (username: string, context: TriggerContext): Promise<boolean> {
+    const subredditName = await getSubredditName(context);
+    const modList = await context.reddit.getModerators({ subredditName, username }).all();
+    return (modList.length > 0);
+}

@@ -9,7 +9,7 @@ enum AccountFlairSetting {
 export const settingsForUserFlair: SettingsFormField = {
     type: "boolean",
     name: AccountFlairSetting.IncludeUserFlair,
-    label: "Include user's flair in summary (if they have one)",
+    label: "Include user's flair in summary",
     defaultValue: false,
 };
 

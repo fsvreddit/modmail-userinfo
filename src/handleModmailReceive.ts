@@ -4,7 +4,7 @@ import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
 import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendmodmail.js";
-import { getSubredditName } from "./utility.js";
+import { getSubredditName, userIsMod } from "./utility.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (event.messageAuthor && event.messageAuthor.name === context.appName) {
@@ -110,19 +110,22 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     }
 
     // Check if user is a mod, and if app is configured to send summaries for mods
-    if (conversationResponse.conversation.participant.isMod) {
-        if (!settings[GeneralSetting.CreateSummaryForModerators]) {
+    if (!settings[GeneralSetting.CreateSummaryForModerators]) {
+        let userIsModerator = conversationResponse.conversation.participant.isMod;
+        if (!userIsModerator) {
+            // They may actually be a mod, just not with Modmail permissions.
+            userIsModerator = await userIsMod(username, context);
+        }
+        if (userIsModerator) {
             console.log(`${username} is a moderator of /r/${subredditName}, skipping`);
             return;
         }
     }
 
     // And likewise for admins
-    if (conversationResponse.conversation.participant.isAdmin) {
-        if (!settings[GeneralSetting.CreateSummaryForAdmins]) {
-            console.log(`${username} is an admin, skipping`);
-            return;
-        }
+    if (conversationResponse.conversation.participant.isAdmin && !settings[GeneralSetting.CreateSummaryForAdmins]) {
+        console.log(`${username} is an admin, skipping`);
+        return;
     }
 
     const delaySendAfterBan = settings[GeneralSetting.DelaySendAfterBan] as boolean | undefined ?? false;

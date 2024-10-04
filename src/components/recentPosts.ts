@@ -54,7 +54,6 @@ export async function getRecentPosts (username: string, settings: SettingsValues
     const modsToIgnoreRemovalsFrom = modsToIgnoreRemovalsFromSetting.split(",").map(x => x.trim().toLowerCase());
 
     const [locale] = settings[GeneralSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];
-    const subredditName = await getSubredditName(context);
 
     let recentPosts = await context.reddit.getPostsByUser({
         username,
@@ -62,11 +61,17 @@ export async function getRecentPosts (username: string, settings: SettingsValues
         limit: 100,
     }).all();
 
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-    recentPosts = recentPosts.filter(post => post.subredditName === subredditName && (((post.removed || post.spam) && post.removedBy && !modsToIgnoreRemovalsFrom.includes(post.removedBy.toLowerCase())) || includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved)).slice(0, numberOfPostsToInclude);
+    recentPosts = recentPosts.filter(post => post.subredditId === context.subredditId)
+        .filter(post => (
+            (includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved)
+            || ((post.removed || post.spam) && post.removedBy && !modsToIgnoreRemovalsFrom.includes(post.removedBy.toLowerCase()))))
+        .slice(0, numberOfPostsToInclude);
+
     if (recentPosts.length === 0) {
         return;
     }
+
+    const subredditName = await getSubredditName(context);
 
     let result = `**Recent ${includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
     result += recentPosts
