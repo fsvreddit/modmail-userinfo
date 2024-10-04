@@ -3,7 +3,7 @@ import { ModMail } from "@devvit/protos";
 import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
 import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
-import { createAndSendSummaryModmail } from "./createAndSendmodmail.js";
+import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { getSubredditName, userIsMod } from "./utility.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {

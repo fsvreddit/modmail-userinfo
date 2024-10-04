@@ -1,5 +1,5 @@
 import { Devvit } from "@devvit/public-api";
-import { sendDelayedSummary } from "./createAndSendmodmail.js";
+import { sendDelayedSummary } from "./createAndSendMessage.js";
 import { generalSettings } from "./settings.js";
 import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
 import { settingsForUserFlair } from "./components/accountFlair.js";

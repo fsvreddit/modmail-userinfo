@@ -84,7 +84,7 @@ export async function getModNotes (username: string, settings: SettingsValues, c
 
     allUserNotes.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    let result = "**User notes**:\n\n";
+    let result = shouldIncludeNativeUsernotes ? "**Mod notes**:\n\n" : "**User notes**:\n\n";
 
     const includeSource = shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes;
     result += allUserNotes.map(note => formatNote(note, locale, includeSource)).join("\n");
