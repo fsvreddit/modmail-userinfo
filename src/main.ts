@@ -7,11 +7,12 @@ import { settingsForRecentSubreddits } from "./components/recentSubredditList.js
 import { settingsForRecentComments } from "./components/recentComments.js";
 import { settingsForRecentPosts } from "./components/recentPosts.js";
 import { settingsForModNotes } from "./components/modNotes.js";
+import { settingsForAccountAge } from "./components/accountAge.js";
+import { settingsForAccountKarma } from "./components/accountKarma.js";
 
 Devvit.addSettings([
-    // Include account age options
-    // Include sitewide karma options
-    // Include recent comments across Reddit
+    settingsForAccountAge,
+    settingsForAccountKarma,
     settingsForUserFlair,
     settingsForRecentSubreddits,
     // Recent activity in your subreddit (Disabled by default)

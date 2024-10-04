@@ -2,7 +2,7 @@ import { SettingsFormField, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
 
-enum MonitoringSetting {
+export enum MonitoringSetting {
     MonitoringSubreddit = "monitoringSubreddit",
     MonitoringWebhook = "monitoringWebhook",
 }

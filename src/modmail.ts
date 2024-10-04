@@ -2,7 +2,7 @@ import { GetConversationResponse, JSONObject, ModMailConversationState, Schedule
 import { ModMail } from "@devvit/protos";
 import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
-import { scheduleJobs } from "./monitoring.js";
+import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { getRecentSubreddits } from "./components/recentSubredditList.js";
 import { getRecentComments } from "./components/recentComments.js";
 import { getRecentPosts } from "./components/recentPosts.js";
@@ -64,7 +64,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
         // Special handling: Schedule jobs if !monitor command is run, and this is the monitoring subreddit.
         if (firstMessage.body?.includes("!monitor")) {
-            const monitoringSubreddit = await context.settings.get<string>(GeneralSetting.MonitoringSubreddit);
+            const monitoringSubreddit = await context.settings.get<string>(MonitoringSetting.MonitoringSubreddit);
             const subreddit = await context.reddit.getCurrentSubreddit();
             if (subreddit.name.toLowerCase() === monitoringSubreddit?.toLowerCase()) {
                 await scheduleJobs(context, event.conversationId);
@@ -195,8 +195,8 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         limit: 100,
     }).all();
 
-    modmailMessage += getAccountAge(user);
-    modmailMessage += getAccountKarma(user);
+    modmailMessage += getAccountAge(user, settings);
+    modmailMessage += getAccountKarma(user, settings);
     modmailMessage += getAccountNSFW(user);
     modmailMessage += await getAccountFlair(user, settings, context);
     modmailMessage += await getRecentSubreddits(userComments, settings, context);
