@@ -1,4 +1,4 @@
-import { GetConversationResponse, ModMailConversationState, TriggerContext } from "@devvit/public-api";
+import { GetConversationResponse, ModMailConversationState, TriggerContext, User } from "@devvit/public-api";
 import { ModMail } from "@devvit/protos";
 import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
@@ -48,8 +48,9 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     const firstMessage = messagesInConversation[0];
     console.log(`First Message ID: ${firstMessage.id ?? "undefined"}`);
 
+    const username = conversationResponse.conversation.participant?.name;
     // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion
-    if (!conversationResponse.conversation.participant?.name) {
+    if (!conversationResponse.conversation.participant || !username) {
         console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
 
         // Special handling: Schedule jobs if !monitor command is run, and this is the monitoring subreddit.
@@ -73,10 +74,15 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
-    const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+    let user: User | undefined;
+    try {
+        user = await context.reddit.getUserByUsername(username);
+    } catch {
+        //
+    }
+
     if (!user) {
-        console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Likely shadowbanned or suspended.`);
-        return;
+        console.log(`User ${username} could not be resolved. Likely shadowbanned or suspended.`);
     }
 
     let subredditName: string;
@@ -89,7 +95,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     const settings = await context.settings.getAll();
 
-    if (!(settings[GeneralSetting.CreateSummaryOnOutgoingMessages] ?? true) && user.username !== event.messageAuthor.name) {
+    if (!(settings[GeneralSetting.CreateSummaryOnOutgoingMessages] ?? true) && username !== event.messageAuthor.name) {
         console.log("Outgoing modmail. Skipping summary creation.");
         return;
     }
@@ -98,8 +104,8 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     const usersToIgnore = settings[GeneralSetting.UsernamesToIgnore] as string | undefined;
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
-        if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
-            console.log(`User /u/${user.username} is on the ignore list, skipping`);
+        if (userList.some(x => x.trim().toLowerCase() === username.toLowerCase())) {
+            console.log(`User /u/${username} is on the ignore list, skipping`);
             return;
         }
     }
@@ -107,7 +113,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     // Check if user is a mod, and if app is configured to send summaries for mods
     if (conversationResponse.conversation.participant.isMod) {
         if (!settings[GeneralSetting.CreateSummaryForModerators]) {
-            console.log(`${user.username} is a moderator of /r/${subredditName}, skipping`);
+            console.log(`${username} is a moderator of /r/${subredditName}, skipping`);
             return;
         }
     }
@@ -115,7 +121,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     // And likewise for admins
     if (conversationResponse.conversation.participant.isAdmin) {
         if (!settings[GeneralSetting.CreateSummaryForAdmins]) {
-            console.log(`${user.username} is an admin, skipping`);
+            console.log(`${username} is an admin, skipping`);
             return;
         }
     }
@@ -137,7 +143,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    const summaryAdded = await createAndSendSummaryModmail(context, user, subredditName, event.conversationId);
+    const summaryAdded = await createAndSendSummaryModmail(context, username, user, event.conversationId);
     if (!summaryAdded) {
         return;
     }
@@ -148,7 +154,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         console.log("Copying original message after summary");
         const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
         if (firstMessage.author?.isParticipant && firstMessage.bodyMarkdown) {
-            let newMessageBody = `Original message from /u/${user.username}:\n\n> `;
+            let newMessageBody = `Original message from /u/${username}:\n\n> `;
             newMessageBody += firstMessage.bodyMarkdown.split("\n").join("\n> ");
             await context.reddit.modMail.reply({
                 body: newMessageBody,

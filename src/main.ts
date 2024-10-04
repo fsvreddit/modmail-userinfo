@@ -12,6 +12,7 @@ import { settingsForAccountKarma } from "./components/accountKarma.js";
 import { settingsForAccountNSFW } from "./components/accountNSFW.js";
 import { settingsForRecentSubredditComments } from "./components/recentSubredditComments.js";
 import { onModmailReceiveEvent } from "./handleModmailReceive.js";
+import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
@@ -23,6 +24,7 @@ Devvit.addSettings([
     settingsForRecentComments,
     settingsForRecentPosts,
     settingsForModNotes,
+    settingsForShadowbanCheck,
     generalSettings,
     ...settingsForMonitoring,
 ]);

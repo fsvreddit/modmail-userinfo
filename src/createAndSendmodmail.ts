@@ -10,9 +10,10 @@ import { getAccountNSFW } from "./components/accountNSFW.js";
 import { getAccountFlair } from "./components/accountFlair.js";
 import _ from "lodash";
 import { getRecentSubredditCommentCount } from "./components/recentSubredditComments.js";
+import { getUserShadowbanText } from "./components/shadowbanInfo.js";
 
-export async function createAndSendSummaryModmail (context: TriggerContext, user: User, subName: string, conversationId: string): Promise<boolean> {
-    const modmailMessage = await createUserSummaryModmail(context, user);
+export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
+    const modmailMessage = await createUserSummaryModmail(context, username, user);
     if (!modmailMessage) {
         return false;
     }
@@ -26,40 +27,47 @@ export async function createAndSendSummaryModmail (context: TriggerContext, user
     return true;
 }
 
-export async function createUserSummaryModmail (context: TriggerContext, user: User): Promise<string | undefined> {
-    console.log(`About to create summary modmail for ${user.username}`);
+export async function createUserSummaryModmail (context: TriggerContext, username: string, user?: User): Promise<string | undefined> {
+    console.log(`About to create summary modmail for ${username}`);
 
     const settings = await context.settings.getAll();
 
     let modmailMessage = "";
     const textForStartOfSummary = settings[GeneralSetting.TextForStartOfSummary] as string | undefined;
     if (textForStartOfSummary) {
-        modmailMessage = textForStartOfSummary.replace("{{username}}", user.username) + "\n\n";
+        modmailMessage = textForStartOfSummary.replace("{{username}}", username) + "\n\n";
     }
 
-    const userComments = await user.getComments({
-        sort: "new",
-        limit: 1000,
-    }).all();
+    let components: string[];
+    if (user) {
+        const userComments = await user.getComments({
+            sort: "new",
+            limit: 1000,
+        }).all();
 
-    // Retrieve all components, removing any blanks.
-    const components = _.compact([
-        getAccountAge(user, settings),
-        getAccountKarma(user, settings),
-        getAccountNSFW(user, settings),
-        ...await Promise.all([
-            getAccountFlair(user, settings, context),
-            getRecentSubreddits(userComments, settings, context),
-            getRecentSubredditCommentCount(userComments, settings, context),
-            getRecentComments(userComments, settings, context),
-            getRecentPosts(user.username, settings, context),
-            getModNotes(user.username, settings, context),
-        ]),
-    ]);
+        // Retrieve all components, removing any blanks.
+        components = _.compact([
+            getAccountAge(user, settings),
+            getAccountKarma(user, settings),
+            getAccountNSFW(user, settings),
+            ...await Promise.all([
+                getAccountFlair(user, settings, context),
+                getRecentSubreddits(userComments, settings, context),
+                getRecentSubredditCommentCount(userComments, settings, context),
+                getRecentComments(userComments, settings, context),
+                getRecentPosts(user.username, settings, context),
+                getModNotes(user.username, settings, context),
+            ]),
+        ]);
+    } else {
+        components = _.compact([
+            getUserShadowbanText(username, settings),
+        ]);
+    }
 
     if (components.length === 0) {
         // No components enabled, or returning data!
-        console.log(`No components returned data for ${user.username}.`);
+        console.log(`No components returned data for ${username}.`);
         return;
     }
 
@@ -88,13 +96,18 @@ export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | 
         if (conversationResponse.conversation?.participant?.name) {
             const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
-            const user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
-            if (!user) {
-                console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Likely shadowbanned or suspended.`);
-                return;
+            let user: User | undefined;
+            try {
+                user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
+            } catch {
+                //
             }
 
-            const summaryAdded = await createAndSendSummaryModmail(context, user, subredditName, conversationId);
+            if (!user) {
+                console.log(`User ${conversationResponse.conversation.participant.name} could not be resolved. Likely shadowbanned or suspended.`);
+            }
+
+            const summaryAdded = await createAndSendSummaryModmail(context, conversationResponse.conversation.participant.name, user, conversationId);
             if (summaryAdded && conversationIsArchived) {
                 await context.reddit.modMail.archiveConversation(conversationId);
             }
