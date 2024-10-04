@@ -36,7 +36,7 @@ interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox";
 }
 
-export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<string> {
+export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     const combinedNotesRetriever: Promise<CombinedUserNote[]>[] = [];
 
     const subredditName = await getSubredditName(context);
@@ -55,7 +55,7 @@ export async function getModNotes (username: string, settings: SettingsValues, c
     const allUserNotes = _.flatten(notesResults);
 
     if (allUserNotes.length === 0) {
-        return "";
+        return;
     }
 
     const [locale] = settings[GeneralSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];

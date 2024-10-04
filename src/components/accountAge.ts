@@ -37,9 +37,9 @@ export const settingsForAccountAge: SettingsFormField = {
     ],
 };
 
-export function getAccountAge (user: User, settings: SettingsValues): string {
+export function getAccountAge (user: User, settings: SettingsValues): string | undefined {
     if (!settings[AccountAgeSetting.EnableOption]) {
-        return "";
+        return;
     }
 
     const [accountAgeFormat] = settings[AccountAgeSetting.AccountAgeFormat] as AccountAgeFormat[] | undefined ?? [AccountAgeFormat.Approximate];

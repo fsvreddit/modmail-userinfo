@@ -42,12 +42,12 @@ export const settingsForRecentPosts: SettingsFormField = {
     ],
 };
 
-export async function getRecentPosts (username: string, settings: SettingsValues, context: TriggerContext): Promise<string> {
+export async function getRecentPosts (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     const [includeRecentPosts] = settings[RecentPostsSetting.IncludeRecentPosts] as string[] | undefined ?? [IncludeRecentContentOption.None];
     const numberOfPostsToInclude = settings[RecentPostsSetting.NumberOfPostsToInclude] as number | undefined ?? 3;
 
     if (numberOfPostsToInclude === 0 || includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.None) {
-        return "";
+        return;
     }
 
     const modsToIgnoreRemovalsFromSetting = settings[RecentPostsSetting.ModsToIgnoreRemovalsFrom] as string | undefined ?? "";
@@ -65,7 +65,7 @@ export async function getRecentPosts (username: string, settings: SettingsValues
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     recentPosts = recentPosts.filter(post => post.subredditName === subredditName && (((post.removed || post.spam) && post.removedBy && !modsToIgnoreRemovalsFrom.includes(post.removedBy.toLowerCase())) || includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved)).slice(0, numberOfPostsToInclude);
     if (recentPosts.length === 0) {
-        return "";
+        return;
     }
 
     let result = `**Recent ${includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;

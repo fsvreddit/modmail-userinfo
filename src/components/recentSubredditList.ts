@@ -84,17 +84,17 @@ interface SubCommentCount {
     commentCount: number;
 }
 
-export async function getRecentSubreddits (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string> {
+export async function getRecentSubreddits (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     // Build up a list of subreddits and the count of comments in those subreddits
 
     const numberOfSubsToReportOn = settings[RecentSubredditSetting.NumberOfSubsInSummary] as number | undefined ?? 10;
     if (numberOfSubsToReportOn === 0) {
-        return "";
+        return;
     }
 
     const numberOfCommentsToCheck = settings[RecentSubredditSetting.NumberOfCommentsToCount] as number | undefined ?? 100;
     if (numberOfCommentsToCheck === 0) {
-        return "";
+        return;
     }
 
     const countedSubs = _.countBy(recentComments.slice(0, numberOfCommentsToCheck).map(x => x.subredditName));
@@ -128,7 +128,7 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     }
 
     if (filteredSubCommentCounts.length === 0) {
-        return "";
+        return;
     }
 
     const [subHistoryDisplayStyle] = settings[RecentSubredditSetting.SubHistoryDisplayStyle] as string[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];

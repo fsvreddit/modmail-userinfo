@@ -13,16 +13,14 @@ export const settingsForUserFlair: SettingsFormField = {
     defaultValue: false,
 };
 
-export async function getAccountFlair (user: User, settings: SettingsValues, context: TriggerContext): Promise<string> {
+export async function getAccountFlair (user: User, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     if (!settings[AccountFlairSetting.IncludeUserFlair]) {
-        return "";
+        return;
     }
 
     const subredditName = await getSubredditName(context);
     const userFlair = await user.getUserFlairBySubreddit(subredditName);
     if (userFlair?.flairText) {
         return `**User Flair**: ${markdownEscape(userFlair.flairText)}\n\n`;
-    } else {
-        return "";
     }
 }

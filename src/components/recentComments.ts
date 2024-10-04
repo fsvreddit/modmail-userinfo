@@ -35,12 +35,12 @@ export const settingsForRecentComments: SettingsFormField = {
     ],
 };
 
-export async function getRecentComments (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string> {
+export async function getRecentComments (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     const [includeRecentComments] = settings[RecentCommentsSetting.IncludeRecentComments] as string[] | undefined ?? [IncludeRecentContentOption.None];
     const numberOfRemovedCommentsToInclude = settings[RecentCommentsSetting.NumberOfCommentsToInclude] as number | undefined ?? 3;
 
     if (numberOfRemovedCommentsToInclude === 0 || includeRecentComments as IncludeRecentContentOption === IncludeRecentContentOption.None) {
-        return "";
+        return;
     }
 
     const [locale] = settings[GeneralSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];
@@ -51,7 +51,7 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
         .slice(0, numberOfRemovedCommentsToInclude);
 
     if (filteredComments.length === 0) {
-        return "";
+        return;
     }
 
     let result: string;

@@ -28,14 +28,14 @@ export const settingsForRecentSubredditComments: SettingsFormField = {
     ],
 };
 
-export async function getRecentSubredditCommentCount (userComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string> {
+export async function getRecentSubredditCommentCount (userComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     if (!settings[RecentSubredditCommentSetting.EnableOption]) {
-        return "";
+        return;
     }
 
     const numberOfDays = settings[RecentSubredditCommentSetting.NumberOfDays] as number | undefined;
     if (!numberOfDays) {
-        return "";
+        return;
     }
 
     const subredditComments = userComments.filter(comment => comment.subredditId === context.subredditId && comment.createdAt > subDays(new Date(), numberOfDays));

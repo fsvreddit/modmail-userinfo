@@ -17,9 +17,9 @@ export const settingsForAccountKarma: SettingsFormField = {
     ],
 };
 
-export function getAccountKarma (user: User, settings: SettingsValues): string {
+export function getAccountKarma (user: User, settings: SettingsValues): string | undefined {
     if (!settings[AccountKarmaSetting.EnableOption]) {
-        return "";
+        return;
     }
 
     return `**Sitewide karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;

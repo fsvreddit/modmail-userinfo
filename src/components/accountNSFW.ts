@@ -17,14 +17,12 @@ export const settingsForAccountNSFW: SettingsFormField = {
     ],
 };
 
-export function getAccountNSFW (user: User, settings: SettingsValues): string {
+export function getAccountNSFW (user: User, settings: SettingsValues): string | undefined {
     if (!settings[AccountNSFWSetting.EnableOption]) {
-        return "";
+        return;
     }
 
     if (user.nsfw) {
         return "**NSFW account**: Yes\n\n";
-    } else {
-        return "";
     }
 }
