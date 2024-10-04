@@ -12,6 +12,7 @@ import { getAccountKarma } from "./components/accountKarma.js";
 import { getAccountNSFW } from "./components/accountNSFW.js";
 import { getAccountFlair } from "./components/accountFlair.js";
 import _ from "lodash";
+import { getRecentSubredditCommentCount } from "./components/recentSubredditComments.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     console.log("Received modmail trigger event.");
@@ -206,7 +207,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
 
     const userComments = await user.getComments({
         sort: "new",
-        limit: 100,
+        limit: 1000,
     }).all();
 
     // Retrieve all components, removing any blanks.
@@ -216,7 +217,8 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         getAccountNSFW(user, settings),
         ...await Promise.all([
             getAccountFlair(user, settings, context),
-            getRecentSubreddits(userComments, settings, context),
+            getRecentSubreddits(userComments.slice(0, 100), settings, context),
+            getRecentSubredditCommentCount(userComments, settings, context),
             getRecentComments(userComments, settings, context),
             getRecentPosts(user.username, settings, context),
             getModNotes(user.username, settings, context),
