@@ -1,8 +1,47 @@
-import { Comment, SettingsValues, TriggerContext } from "@devvit/public-api";
+import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { addDays } from "date-fns";
-import { AppSetting, SubHistoryDisplayStyleOption } from "../settings.js";
 import _ from "lodash";
 import { getSubredditName } from "../utility.js";
+
+enum RecentSubredditSetting {
+    NumberOfSubsInSummary = "numberOfSubsToIncludeInSummary",
+    SubHistoryDisplayStyle = "subHistoryDisplayStyle",
+}
+
+enum SubHistoryDisplayStyleOption {
+    Bullet = "bullet",
+    SingleParagraph = "singlepara",
+}
+
+export const settingsForRecentSubreddits: SettingsFormField = {
+    type: "group",
+    label: "Recent activity across Reddit",
+    fields: [
+        {
+            type: "number",
+            name: RecentSubredditSetting.NumberOfSubsInSummary,
+            label: "Number of subreddits to include in comment summary",
+            helpText: "Limit the number of subreddits listed to this number. If a user participates in lots of subreddits, a large number might be distracting. Set to 0 to disable this output",
+            defaultValue: 10,
+            onValidate: ({ value }) => {
+                if (value && (value < 0 || value > 100)) {
+                    return "Value must be between 0 and 100";
+                }
+            },
+        },
+        {
+            type: "select",
+            name: RecentSubredditSetting.SubHistoryDisplayStyle,
+            label: "Output style for subreddit history",
+            options: [
+                { label: "Bulleted list (one subreddit per line)", value: SubHistoryDisplayStyleOption.Bullet },
+                { label: "Single paragraph (all subreddits on one line - more compact)", value: SubHistoryDisplayStyleOption.SingleParagraph },
+            ],
+            defaultValue: [SubHistoryDisplayStyleOption.SingleParagraph],
+            multiSelect: false,
+        },
+    ],
+};
 
 async function getSubredditVisibility (context: TriggerContext, subredditName: string): Promise<boolean> {
     if (subredditName.startsWith("u_")) {
@@ -43,7 +82,7 @@ interface SubCommentCount {
 export async function getRecentSubreddits (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string> {
     // Build up a list of subreddits and the count of comments in those subreddits
 
-    const numberOfSubsToReportOn = settings[AppSetting.NumberOfSubsInSummary] as number | undefined ?? 10;
+    const numberOfSubsToReportOn = settings[RecentSubredditSetting.NumberOfSubsInSummary] as number | undefined ?? 10;
     if (numberOfSubsToReportOn === 0) {
         return "";
     }
@@ -82,7 +121,7 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
         return "";
     }
 
-    const [subHistoryDisplayStyle] = settings[AppSetting.SubHistoryDisplayStyle] as string[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];
+    const [subHistoryDisplayStyle] = settings[RecentSubredditSetting.SubHistoryDisplayStyle] as string[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];
     let result = "**Recent comments across Reddit**: ";
 
     if (subHistoryDisplayStyle as SubHistoryDisplayStyleOption === SubHistoryDisplayStyleOption.Bullet) {

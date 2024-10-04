@@ -1,18 +1,38 @@
-import { TriggerContext } from "@devvit/public-api";
+import { SettingsFormField, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
-import { AppSetting } from "./settings.js";
+
+enum MonitoringSetting {
+    MonitoringSubreddit = "monitoringSubreddit",
+    MonitoringWebhook = "monitoringWebhook",
+}
+
+export const settingsForMonitoring: SettingsFormField[] = [
+    {
+        type: "string",
+        name: MonitoringSetting.MonitoringSubreddit,
+        label: "Monitoring Subreddit",
+        helpText: "The name of a subreddit (omitting the leading /r/) that half hourly monitoring jobs will run on",
+        scope: "app",
+    },
+    {
+        type: "string",
+        name: MonitoringSetting.MonitoringWebhook,
+        label: "Webhook to send uptime alerts to",
+        scope: "app",
+    },
+];
 
 export async function checkIfAppIsWorking (_: unknown, context: TriggerContext) {
     const currentSubreddit = await context.reddit.getCurrentSubreddit();
     const settings = await context.settings.getAll();
 
-    const monitoringSubreddit = settings[AppSetting.MonitoringSubreddit] as string | undefined;
+    const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
     if (currentSubreddit.name.toLowerCase() !== monitoringSubreddit) {
         return;
     }
 
-    const webhookUrl = settings[AppSetting.MonitoringWebhook] as string | undefined;
+    const webhookUrl = settings[MonitoringSetting.MonitoringWebhook] as string | undefined;
     if (!webhookUrl) {
         return;
     }
@@ -95,7 +115,7 @@ export async function scheduleJobs (context: TriggerContext, conversationId?: st
 
     const settings = await context.settings.getAll();
 
-    const monitoringSubreddit = settings[AppSetting.MonitoringSubreddit] as string | undefined;
+    const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
     if (currentSubreddit.name.toLowerCase() !== monitoringSubreddit) {
         console.log(`Scheduler: /r/${currentSubreddit.name} is not a permitted monitoring subreddit.`);
         return;

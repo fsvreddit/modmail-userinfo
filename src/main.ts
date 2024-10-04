@@ -1,9 +1,26 @@
 import { Devvit } from "@devvit/public-api";
 import { onModmailReceiveEvent, sendDelayedSummary } from "./modmail.js";
-import { appSettings } from "./settings.js";
-import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall } from "./monitoring.js";
+import { generalSettings } from "./settings.js";
+import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
+import { settingsForUserFlair } from "./components/accountFlair.js";
+import { settingsForRecentSubreddits } from "./components/recentSubredditList.js";
+import { settingsForRecentComments } from "./components/recentComments.js";
+import { settingsForRecentPosts } from "./components/recentPosts.js";
+import { settingsForModNotes } from "./components/modNotes.js";
 
-Devvit.addSettings(appSettings);
+Devvit.addSettings([
+    // Include account age options
+    // Include sitewide karma options
+    // Include recent comments across Reddit
+    settingsForUserFlair,
+    settingsForRecentSubreddits,
+    // Recent activity in your subreddit (Disabled by default)
+    settingsForRecentComments,
+    settingsForRecentPosts,
+    settingsForModNotes,
+    generalSettings,
+    ...settingsForMonitoring,
+]);
 
 Devvit.addTrigger({
     event: "ModMail",

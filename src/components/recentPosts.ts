@@ -1,20 +1,58 @@
-import { SettingsValues, TriggerContext } from "@devvit/public-api";
-import { AppSetting, IncludeRecentContentOption } from "../settings.js";
+import { SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
+import { GeneralSetting, IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settings.js";
 import { getSubredditName } from "../utility.js";
 import markdownEscape from "markdown-escape";
 
+enum RecentPostsSetting {
+    IncludeRecentPosts = "includeRecentPosts",
+    NumberOfPostsToInclude = "numberOfPostsToInclude",
+    ModsToIgnoreRemovalsFrom = "modsToIgnoreRemovalsFrom",
+}
+
+export const settingsForRecentPosts: SettingsFormField = {
+    type: "group",
+    label: "Recent comment activity in your subreddit",
+    fields: [
+        {
+            type: "select",
+            name: RecentPostsSetting.IncludeRecentPosts,
+            label: "Include recent posts in summary",
+            options: [
+                { label: "None", value: IncludeRecentContentOption.None },
+                { label: "Visible and Removed posts", value: IncludeRecentContentOption.VisibleAndRemoved },
+                { label: "Removed posts only", value: IncludeRecentContentOption.Removed },
+            ],
+            defaultValue: [IncludeRecentContentOption.None],
+            multiSelect: false,
+            onValidate: selectFieldHasOptionChosen,
+        },
+        {
+            type: "string",
+            name: RecentPostsSetting.ModsToIgnoreRemovalsFrom,
+            label: "Moderators to ignore removals from if 'recent posts' option is 'Removed only'",
+            helpText: "Comma separated, not case sensitive",
+        },
+        {
+            type: "number",
+            name: RecentPostsSetting.NumberOfPostsToInclude,
+            label: "Number of recent posts to show in summary",
+            defaultValue: 3,
+        },
+    ],
+};
+
 export async function getRecentPosts (username: string, settings: SettingsValues, context: TriggerContext): Promise<string> {
-    const [includeRecentPosts] = settings[AppSetting.IncludeRecentPosts] as string[] | undefined ?? [IncludeRecentContentOption.None];
-    const numberOfPostsToInclude = settings[AppSetting.NumberOfPostsToInclude] as number | undefined ?? 3;
+    const [includeRecentPosts] = settings[RecentPostsSetting.IncludeRecentPosts] as string[] | undefined ?? [IncludeRecentContentOption.None];
+    const numberOfPostsToInclude = settings[RecentPostsSetting.NumberOfPostsToInclude] as number | undefined ?? 3;
 
     if (numberOfPostsToInclude === 0 || includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.None) {
         return "";
     }
 
-    const modsToIgnoreRemovalsFromSetting = settings[AppSetting.ModsToIgnoreRemovalsFrom] as string | undefined ?? "";
+    const modsToIgnoreRemovalsFromSetting = settings[RecentPostsSetting.ModsToIgnoreRemovalsFrom] as string | undefined ?? "";
     const modsToIgnoreRemovalsFrom = modsToIgnoreRemovalsFromSetting.split(",").map(x => x.trim().toLowerCase());
 
-    const [locale] = settings[AppSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];
+    const [locale] = settings[GeneralSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];
     const subredditName = await getSubredditName(context);
 
     let recentPosts = await context.reddit.getPostsByUser({

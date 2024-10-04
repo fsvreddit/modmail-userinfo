@@ -1,10 +1,20 @@
-import { SettingsValues, TriggerContext, User } from "@devvit/public-api";
-import { AppSetting } from "../settings.js";
+import { SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
 import markdownEscape from "markdown-escape";
 import { getSubredditName } from "../utility.js";
 
+enum AccountFlairSetting {
+    IncludeUserFlair = "includeUserFlair",
+}
+
+export const settingsForUserFlair: SettingsFormField = {
+    type: "boolean",
+    name: AccountFlairSetting.IncludeUserFlair,
+    label: "Include user's flair in summary (if they have one)",
+    defaultValue: false,
+};
+
 export async function getAccountFlair (user: User, settings: SettingsValues, context: TriggerContext): Promise<string> {
-    if (!settings[AppSetting.IncludeUserFlair]) {
+    if (!settings[AccountFlairSetting.IncludeUserFlair]) {
         return "";
     }
 

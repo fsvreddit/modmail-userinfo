@@ -1,7 +1,7 @@
 import { GetConversationResponse, JSONObject, ModMailConversationState, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
 import { ModMail } from "@devvit/protos";
 import { addDays, addSeconds } from "date-fns";
-import { AppSetting } from "./settings.js";
+import { GeneralSetting } from "./settings.js";
 import { scheduleJobs } from "./monitoring.js";
 import { getRecentSubreddits } from "./components/recentSubredditList.js";
 import { getRecentComments } from "./components/recentComments.js";
@@ -64,7 +64,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
         // Special handling: Schedule jobs if !monitor command is run, and this is the monitoring subreddit.
         if (firstMessage.body?.includes("!monitor")) {
-            const monitoringSubreddit = await context.settings.get<string>(AppSetting.MonitoringSubreddit);
+            const monitoringSubreddit = await context.settings.get<string>(GeneralSetting.MonitoringSubreddit);
             const subreddit = await context.reddit.getCurrentSubreddit();
             if (subreddit.name.toLowerCase() === monitoringSubreddit?.toLowerCase()) {
                 await scheduleJobs(context, event.conversationId);
@@ -102,13 +102,13 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     const settings = await context.settings.getAll();
 
-    if (!(settings[AppSetting.CreateSummaryOnOutgoingMessages] ?? true) && user.username !== event.messageAuthor.name) {
+    if (!(settings[GeneralSetting.CreateSummaryOnOutgoingMessages] ?? true) && user.username !== event.messageAuthor.name) {
         console.log("Outgoing modmail. Skipping summary creation.");
         return;
     }
 
     // Check if user is on the ignore list.
-    const usersToIgnore = settings[AppSetting.UsernamesToIgnore] as string | undefined;
+    const usersToIgnore = settings[GeneralSetting.UsernamesToIgnore] as string | undefined;
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
         if (userList.some(x => x.trim().toLowerCase() === user.username.toLowerCase())) {
@@ -119,7 +119,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     // Check if user is a mod, and if app is configured to send summaries for mods
     if (conversationResponse.conversation.participant.isMod) {
-        if (!settings[AppSetting.CreateSummaryForModerators]) {
+        if (!settings[GeneralSetting.CreateSummaryForModerators]) {
             console.log(`${user.username} is a moderator of /r/${subredditName}, skipping`);
             return;
         }
@@ -127,14 +127,14 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     // And likewise for admins
     if (conversationResponse.conversation.participant.isAdmin) {
-        if (!settings[AppSetting.CreateSummaryForAdmins]) {
+        if (!settings[GeneralSetting.CreateSummaryForAdmins]) {
             console.log(`${user.username} is an admin, skipping`);
             return;
         }
     }
 
-    const delaySendAfterBan = settings[AppSetting.DelaySendAfterBan] as boolean | undefined ?? false;
-    const delaySendAfterOtherModmails = settings[AppSetting.DelaySendAfterIncomingModmails] as boolean | undefined ?? false;
+    const delaySendAfterBan = settings[GeneralSetting.DelaySendAfterBan] as boolean | undefined ?? false;
+    const delaySendAfterOtherModmails = settings[GeneralSetting.DelaySendAfterIncomingModmails] as boolean | undefined ?? false;
 
     if ((conversationIsArchived && delaySendAfterBan) || (!conversationIsArchived && delaySendAfterOtherModmails)) {
         console.log("Queueing message to send 10 seconds from now.");
@@ -152,7 +152,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     await createAndSendSummaryModmail(context, user, subredditName, event.conversationId);
 
-    const copyOPAfterSummary = settings[AppSetting.CopyOPAfterSummary] as boolean | undefined ?? false;
+    const copyOPAfterSummary = settings[GeneralSetting.CopyOPAfterSummary] as boolean | undefined ?? false;
     // If option enabled, and the message is from the participant, copy the OP's body as a new message.
     if (copyOPAfterSummary && !conversationIsArchived) {
         console.log("Copying original message after summary");
