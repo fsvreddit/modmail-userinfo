@@ -1,5 +1,18 @@
 # Change Log
 
+### v1.6.0
+
+* Output is now fully configurable. All options can be disabled or enabled individually, allowing you to pick and choose what you find useful and hide what you ignore
+* Native Reddit mod notes no longer fail if the user has any mod notes without a post or comment link
+* "Recent posts" header no longer shows if there are no posts to include
+* Added new option for account age output, to allow for exact account age. Granularity is day (if at least 2 days old), hour (if between 6 hours and 2 days old) and minute (if under 6 hours old). The existing approximate output (e.g. "about 1 year") is still available.
+* Added new option to include a line if the user is shadowbanned (no other information can be included if that is the case).
+* Lots of internal code improvements
+
+### v1.5.1
+
+* Add option to include user's flair in summary
+
 ### v1.5
 
 * Add option to include all recent sub comments in summary, not just removed ones

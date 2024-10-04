@@ -12,7 +12,7 @@ export const settingsForShadowbanCheck: SettingsFormField = {
 };
 
 export function getUserShadowbanText (username: string, settings: SettingsValues): string | undefined {
-    if (settings[ShadowbanCheckSetting.EnableOption]) {
+    if (!settings[ShadowbanCheckSetting.EnableOption]) {
         return;
     }
 
