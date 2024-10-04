@@ -16,5 +16,5 @@ export function getAccountKarma (user: User, settings: SettingsValues): string |
         return;
     }
 
-    return `**Sitewide karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}`;
+    return `**Sitewide karma**: Post ${user.linkKarma.toLocaleString()}, Comment ${user.commentKarma.toLocaleString()}`;
 }
