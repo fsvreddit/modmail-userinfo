@@ -1,6 +1,6 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
 import { differenceInDays, differenceInHours, Duration, formatDistanceToNow, formatDuration, intervalToDuration } from "date-fns";
-import { selectFieldHasOptionChosen } from "../settings.js";
+import { selectFieldHasOptionChosen } from "../settingsHelpers.js";
 
 enum AccountAgeSetting {
     EnableOption = "enableAccountAge",

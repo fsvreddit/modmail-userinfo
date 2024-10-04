@@ -1,17 +1,5 @@
-import { SettingsFormField, SettingsFormFieldValidatorEvent } from "@devvit/public-api";
-
-export enum IncludeRecentContentOption {
-    None = "none",
-    VisibleAndRemoved = "all",
-    Removed = "removed",
-}
-
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-export function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEvent<string[]>): void | string {
-    if (!event.value || event.value.length !== 1) {
-        return "You must choose an option";
-    }
-}
+import { SettingsFormField } from "@devvit/public-api";
+import { selectFieldHasOptionChosen } from "./settingsHelpers.js";
 
 export enum GeneralSetting {
     TextForStartOfSummary = "placeholderForStartOfSummary",

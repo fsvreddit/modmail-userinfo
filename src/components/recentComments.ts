@@ -1,6 +1,7 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
-import { GeneralSetting, IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settings.js";
+import { GeneralSetting } from "../settings.js";
 import { getSubredditName } from "../utility.js";
+import { IncludeRecentContentOption, numericFieldBetween, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 
 enum RecentCommentsSetting {
     IncludeRecentComments = "includeRecentComments",
@@ -29,11 +30,7 @@ export const settingsForRecentComments: SettingsFormField = {
             name: RecentCommentsSetting.NumberOfCommentsToInclude,
             label: "Number of recent comments to show in summary",
             defaultValue: 3,
-            onValidate: ({ value }) => {
-                if (value && (value < 0 || value > 10)) {
-                    return "Value must be between 0 and 10";
-                }
-            },
+            onValidate: ({ value }) => numericFieldBetween(value, 0, 10),
         },
     ],
 };

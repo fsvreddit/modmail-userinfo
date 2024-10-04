@@ -2,6 +2,7 @@ import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@dev
 import { addDays } from "date-fns";
 import _ from "lodash";
 import { getSubredditName } from "../utility.js";
+import { numericFieldBetween } from "../settingsHelpers.js";
 
 enum RecentSubredditSetting {
     NumberOfSubsInSummary = "numberOfSubsToIncludeInSummary",
@@ -24,22 +25,14 @@ export const settingsForRecentSubreddits: SettingsFormField = {
             label: "Number of subreddits to include in comment summary",
             helpText: "Limit the number of subreddits listed to this number. If a user participates in lots of subreddits, a large number might be distracting. Set to 0 to disable this output",
             defaultValue: 10,
-            onValidate: ({ value }) => {
-                if (value && (value < 0 || value > 100)) {
-                    return "Value must be between 0 and 100";
-                }
-            },
+            onValidate: ({ value }) => numericFieldBetween(value, 0, 100),
         },
         {
             type: "number",
             name: RecentSubredditSetting.NumberOfCommentsToCount,
             label: "Number of recent comments to count subreddits over",
             defaultValue: 100,
-            onValidate: ({ value }) => {
-                if (value && (value < 0 || value > 1000)) {
-                    return "Value must be between 0 and 1000";
-                }
-            },
+            onValidate: ({ value }) => numericFieldBetween(value, 0, 1000),
         },
         {
             type: "select",
