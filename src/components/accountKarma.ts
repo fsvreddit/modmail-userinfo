@@ -5,16 +5,10 @@ enum AccountKarmaSetting {
 }
 
 export const settingsForAccountKarma: SettingsFormField = {
-    type: "group",
-    label: "Account Karma",
-    fields: [
-        {
-            name: AccountKarmaSetting.EnableOption,
-            type: "boolean",
-            label: "Include sitewide karma in output",
-            defaultValue: true,
-        },
-    ],
+    name: AccountKarmaSetting.EnableOption,
+    type: "boolean",
+    label: "Include sitewide karma in output",
+    defaultValue: true,
 };
 
 export function getAccountKarma (user: User, settings: SettingsValues): string | undefined {
@@ -22,5 +16,5 @@ export function getAccountKarma (user: User, settings: SettingsValues): string |
         return;
     }
 
-    return `**Sitewide karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}\n\n`;
+    return `**Sitewide karma**: Post ${user.linkKarma}, Comment ${user.commentKarma}`;
 }

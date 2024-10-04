@@ -71,7 +71,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
         return;
     }
 
-    modmailMessage += components.join();
+    modmailMessage += components.join("\n\n");
 
     return modmailMessage;
 }

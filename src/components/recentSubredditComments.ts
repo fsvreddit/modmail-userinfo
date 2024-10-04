@@ -40,18 +40,20 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
 
     const subredditComments = userComments.filter(comment => comment.subredditId === context.subredditId && comment.createdAt > subDays(new Date(), numberOfDays));
 
-    const oldestComment = userComments[userComments.length - 1];
-    const actualNumberOfDays = oldestComment.createdAt < subDays(new Date(), numberOfDays) ? numberOfDays : differenceInDays(new Date(), oldestComment.createdAt);
+    let actualNumberOfDays: number | undefined;
+    if (userComments.length > 0) {
+        const oldestComment = userComments[userComments.length - 1];
+        actualNumberOfDays = oldestComment.createdAt < subDays(new Date(), numberOfDays) ? numberOfDays : differenceInDays(new Date(), oldestComment.createdAt);
+    }
 
     const subredditName = await getSubredditName(context);
     let result = `**Recent comments on /r/${subredditName}**: ${subredditComments.length}`;
 
-    if (actualNumberOfDays < numberOfDays) {
+    if (actualNumberOfDays && actualNumberOfDays < numberOfDays) {
         result += ` (recent history only covers ${actualNumberOfDays} ${pluralize("day", actualNumberOfDays)})`;
     } else {
         result += ` in last ${numberOfDays} ${pluralize("day", numberOfDays)}`;
     }
 
-    result += "\n\n";
     return result;
 }

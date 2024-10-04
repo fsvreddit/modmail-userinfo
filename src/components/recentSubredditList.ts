@@ -141,6 +141,5 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
         result += filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
     }
 
-    result += "\n\n";
     return result;
 }

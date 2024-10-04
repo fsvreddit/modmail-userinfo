@@ -5,16 +5,10 @@ enum ShadowbanCheckSetting {
 }
 
 export const settingsForShadowbanCheck: SettingsFormField = {
-    type: "group",
-    label: "Shadowban/Suspended User Notification",
-    fields: [
-        {
-            name: ShadowbanCheckSetting.EnableOption,
-            type: "boolean",
-            label: "Create a stub summary if user is suspended or shadowbanned",
-            defaultValue: true,
-        },
-    ],
+    name: ShadowbanCheckSetting.EnableOption,
+    type: "boolean",
+    label: "If user is shadowbanned, create a basic summary explaining this",
+    defaultValue: true,
 };
 
 export function getUserShadowbanText (username: string, settings: SettingsValues): string | undefined {
@@ -22,5 +16,5 @@ export function getUserShadowbanText (username: string, settings: SettingsValues
         return;
     }
 
-    return `User ${username} appears to be shadowbanned or suspended.\n\n`;
+    return `User ${username} appears to be shadowbanned or suspended.`;
 }

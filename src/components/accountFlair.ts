@@ -21,6 +21,6 @@ export async function getAccountFlair (user: User, settings: SettingsValues, con
     const subredditName = await getSubredditName(context);
     const userFlair = await user.getUserFlairBySubreddit(subredditName);
     if (userFlair?.flairText) {
-        return `**User Flair**: ${markdownEscape(userFlair.flairText)}\n\n`;
+        return `**User Flair**: ${markdownEscape(userFlair.flairText)}`;
     }
 }

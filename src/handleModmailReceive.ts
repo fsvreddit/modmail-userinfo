@@ -8,7 +8,6 @@ import { getSubredditName } from "./utility.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (event.messageAuthor && event.messageAuthor.name === context.appName) {
-        console.log("Modmail event triggered by this app. Quitting.");
         return;
     }
 

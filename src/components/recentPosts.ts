@@ -69,10 +69,9 @@ export async function getRecentPosts (username: string, settings: SettingsValues
     }
 
     let result = `**Recent ${includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
-    for (const post of recentPosts) {
-        result += `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})\n`;
-    }
-    result += "\n";
+    result += recentPosts
+        .map(post => `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})`)
+        .join("\n");
 
     return result;
 }

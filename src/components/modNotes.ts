@@ -1,4 +1,4 @@
-import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, WikiPage } from "@devvit/public-api";
+import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, UserNoteLabel, WikiPage } from "@devvit/public-api";
 import { RawSubredditConfig, RawUsernoteType } from "toolbox-devvit/dist/types/RawSubredditConfig.js";
 import { GeneralSetting } from "../settings.js";
 import { ToolboxClient, Usernote } from "toolbox-devvit";
@@ -36,6 +36,28 @@ interface CombinedUserNote extends Usernote {
     noteSource: "Reddit" | "Toolbox";
 }
 
+function formatNote (note: CombinedUserNote, locale: string, includeSource: boolean): string {
+    let modnote = "";
+    if (note.noteType) {
+        modnote += `[${note.noteType}] `;
+    }
+
+    if (note.contextPermalink && note.contextPermalink !== "") {
+        modnote += `[${markdownEscape(note.text)}](${note.contextPermalink})`;
+    } else {
+        modnote += markdownEscape(note.text);
+    }
+
+    modnote += ` by ${markdownEscape(note.moderatorUsername)} on ${note.timestamp.toLocaleDateString(locale)}`;
+
+    if (includeSource) {
+        // Include whether these are Toolbox or Native notes, if both are configured.
+        modnote += ` (${note.noteSource})`;
+    }
+
+    return `* ${modnote}`;
+}
+
 export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     const combinedNotesRetriever: Promise<CombinedUserNote[]>[] = [];
 
@@ -64,47 +86,26 @@ export async function getModNotes (username: string, settings: SettingsValues, c
 
     let result = "**User notes**:\n\n";
 
-    for (const note of allUserNotes) {
-        let modnote = "";
-        if (note.noteType) {
-            modnote += `[${note.noteType}] `;
-        }
-
-        if (note.contextPermalink && note.contextPermalink !== "") {
-            modnote += `[${markdownEscape(note.text)}](${note.contextPermalink})`;
-        } else {
-            modnote += markdownEscape(note.text);
-        }
-
-        modnote += ` by ${markdownEscape(note.moderatorUsername)} on ${note.timestamp.toLocaleDateString(locale)}`;
-
-        if (shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes) {
-            // Include whether these are Toolbox or Native notes, if both are configured.
-            modnote += ` (${note.noteSource})`;
-        }
-
-        result += `* ${modnote}\n`;
-    }
-    result += "\n";
+    const includeSource = shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes;
+    result += allUserNotes.map(note => formatNote(note, locale, includeSource)).join("\n");
 
     return result;
 }
 
-function getRedditNoteTypeFromEnum (noteType: string | undefined): string | undefined {
-    const noteTypes = [
-        { key: "BOT_BAN", text: "Bot Ban" },
-        { key: "PERMA_BAN", text: "Permaban" },
-        { key: "BAN", text: "Ban" },
-        { key: "ABUSE_WARNING", text: "Abuse Warning" },
-        { key: "SPAM_WARNING", text: "Spam Warning" },
-        { key: "SPAM_WATCH", text: "Spam Watch" },
-        { key: "SOLID_CONTRIBUTOR", text: "Solid Contributor" },
-        { key: "HELPFUL_USER", text: "Helpful" },
-    ];
+function getRedditNoteTypeFromEnum (noteType: UserNoteLabel | undefined): string | undefined {
+    const noteTypes: Record<UserNoteLabel, string> = {
+        BOT_BAN: "Bot Ban",
+        PERMA_BAN: "Permaban",
+        BAN: "Ban",
+        ABUSE_WARNING: "Abuse Warning",
+        SPAM_WARNING: "Spam Warning",
+        SPAM_WATCH: "Spam Watch",
+        SOLID_CONTRIBUTOR: "Solid Contributor",
+        HELPFUL_USER: "Helpful",
+    };
 
-    const result = noteTypes.find(x => x.key === noteType);
-    if (result) {
-        return result.text;
+    if (noteType) {
+        return noteTypes[noteType];
     }
 }
 
@@ -136,11 +137,16 @@ async function getUserNoteFromRedditModNote (reddit: RedditAPIClient, modNote: M
 
 async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditName: string, userName: string): Promise<CombinedUserNote[]> {
     try {
-        const modNotes = await reddit.getModNotes({
+        let modNotes = await reddit.getModNotes({
             subreddit: subredditName,
             user: userName,
             filter: "NOTE",
         }).all();
+
+        // Filter out automatic "Unbanned" notes
+        const regex = /^Unbanned on \d{4}(?:-\d{2}){2}$/;
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        modNotes = modNotes.filter(note => note.userNote?.redditId || !regex.test(note.userNote?.note ?? ""));
 
         const results = await Promise.all(modNotes.map(modNote => getUserNoteFromRedditModNote(reddit, modNote)));
         console.log(`Native mod notes found: ${results.length}`);

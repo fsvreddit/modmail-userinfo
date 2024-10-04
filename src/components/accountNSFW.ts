@@ -5,16 +5,10 @@ enum AccountNSFWSetting {
 }
 
 export const settingsForAccountNSFW: SettingsFormField = {
-    type: "group",
-    label: "Account NSFW Output",
-    fields: [
-        {
-            name: AccountNSFWSetting.EnableOption,
-            type: "boolean",
-            label: "Include a line if account is marked as NSFW",
-            defaultValue: true,
-        },
-    ],
+    name: AccountNSFWSetting.EnableOption,
+    type: "boolean",
+    label: "Include a line if account is marked as NSFW",
+    defaultValue: true,
 };
 
 export function getAccountNSFW (user: User, settings: SettingsValues): string | undefined {
@@ -23,6 +17,6 @@ export function getAccountNSFW (user: User, settings: SettingsValues): string | 
     }
 
     if (user.nsfw) {
-        return "**NSFW account**: Yes\n\n";
+        return "**NSFW account**: Yes";
     }
 }
