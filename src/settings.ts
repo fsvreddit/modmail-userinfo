@@ -14,6 +14,7 @@ export function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEve
 }
 
 export enum GeneralSetting {
+    TextForStartOfSummary = "placeholderForStartOfSummary",
     CopyOPAfterSummary = "copyOPAfterSummary",
     DelaySendAfterBan = "delaySendAfterBan",
     DelaySendAfterIncomingModmails = "delaySendAfterOtherModmails",
@@ -28,6 +29,13 @@ export const generalSettings: SettingsFormField = {
     type: "group",
     label: "General settings",
     fields: [
+        {
+            type: "string",
+            name: GeneralSetting.TextForStartOfSummary,
+            label: "Text for start of summary",
+            helpText: "Leave blank to disable. Placeholder supported: {{username}}",
+            defaultValue: "Possible relevant information for /u/{{username}}",
+        },
         {
             type: "boolean",
             name: GeneralSetting.CopyOPAfterSummary,

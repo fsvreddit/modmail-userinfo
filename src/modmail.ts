@@ -11,6 +11,7 @@ import { getAccountAge } from "./components/accountAge.js";
 import { getAccountKarma } from "./components/accountKarma.js";
 import { getAccountNSFW } from "./components/accountNSFW.js";
 import { getAccountFlair } from "./components/accountFlair.js";
+import _ from "lodash";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     console.log("Received modmail trigger event.");
@@ -150,7 +151,10 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    await createAndSendSummaryModmail(context, user, subredditName, event.conversationId);
+    const summaryAdded = await createAndSendSummaryModmail(context, user, subredditName, event.conversationId);
+    if (!summaryAdded) {
+        return;
+    }
 
     const copyOPAfterSummary = settings[GeneralSetting.CopyOPAfterSummary] as boolean | undefined ?? false;
     // If option enabled, and the message is from the participant, copy the OP's body as a new message.
@@ -174,35 +178,58 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     }
 }
 
-async function createAndSendSummaryModmail (context: TriggerContext, user: User, subName: string, conversationId: string) {
+async function createAndSendSummaryModmail (context: TriggerContext, user: User, subName: string, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, user);
+    if (!modmailMessage) {
+        return false;
+    }
 
     await context.reddit.modMail.reply({
         body: modmailMessage,
         conversationId,
         isInternal: true,
     });
+
+    return true;
 }
 
-export async function createUserSummaryModmail (context: TriggerContext, user: User): Promise<string> {
+export async function createUserSummaryModmail (context: TriggerContext, user: User): Promise<string | undefined> {
     console.log(`About to create summary modmail for ${user.username}`);
 
-    let modmailMessage = `Possible relevant information for /u/${user.username}:\n\n`;
-
     const settings = await context.settings.getAll();
+
+    let modmailMessage = "";
+    const textForStartOfSummary = settings[GeneralSetting.TextForStartOfSummary] as string | undefined;
+    if (textForStartOfSummary) {
+        modmailMessage = textForStartOfSummary.replace("{{username}}", user.username) + "\n\n";
+    }
+
     const userComments = await user.getComments({
         sort: "new",
         limit: 100,
     }).all();
 
-    modmailMessage += getAccountAge(user, settings);
-    modmailMessage += getAccountKarma(user, settings);
-    modmailMessage += getAccountNSFW(user);
-    modmailMessage += await getAccountFlair(user, settings, context);
-    modmailMessage += await getRecentSubreddits(userComments, settings, context);
-    modmailMessage += await getRecentComments(userComments, settings, context);
-    modmailMessage += await getRecentPosts(user.username, settings, context);
-    modmailMessage += await getModNotes(user.username, settings, context);
+    // Retrieve all components, removing any blanks.
+    const components = _.compact([
+        getAccountAge(user, settings),
+        getAccountKarma(user, settings),
+        getAccountNSFW(user),
+        ...await Promise.all([
+            getAccountFlair(user, settings, context),
+            getRecentSubreddits(userComments, settings, context),
+            getRecentComments(userComments, settings, context),
+            getRecentPosts(user.username, settings, context),
+            getModNotes(user.username, settings, context),
+        ]),
+    ]);
+
+    if (components.length === 0) {
+        // No components enabled, or returning data!
+        console.log(`No components returned data for ${user.username}.`);
+        return;
+    }
+
+    modmailMessage += components.join();
 
     return modmailMessage;
 }
@@ -233,8 +260,8 @@ export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | 
                 return;
             }
 
-            await createAndSendSummaryModmail(context, user, subredditName, conversationId);
-            if (conversationIsArchived) {
+            const summaryAdded = await createAndSendSummaryModmail(context, user, subredditName, conversationId);
+            if (summaryAdded && conversationIsArchived) {
                 await context.reddit.modMail.archiveConversation(conversationId);
             }
         }
