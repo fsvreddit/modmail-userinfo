@@ -23,6 +23,8 @@ export const settingsForMonitoring: SettingsFormField[] = [
     },
 ];
 
+export const MONITORING_JOB_NAME = "checkIfAppIsWorking";
+
 export async function checkIfAppIsWorking (_: unknown, context: TriggerContext) {
     const currentSubreddit = await context.reddit.getCurrentSubreddit();
     const settings = await context.settings.getAll();
@@ -104,7 +106,7 @@ export async function scheduleJobs (context: TriggerContext, conversationId?: st
     const currentJobs = await context.scheduler.listJobs();
 
     // Remove any scheduled monitoring jobs
-    const monitoringJobs = currentJobs.filter(job => job.name === "checkIfAppIsWorking");
+    const monitoringJobs = currentJobs.filter(job => job.name === MONITORING_JOB_NAME);
     if (monitoringJobs.length > 0) {
         await Promise.all(monitoringJobs.map(job => context.scheduler.cancelJob(job.id)));
         console.log("Scheduler: Removed existing jobs.");
@@ -122,7 +124,7 @@ export async function scheduleJobs (context: TriggerContext, conversationId?: st
     }
 
     await context.scheduler.runJob({
-        name: "checkIfAppIsWorking",
+        name: MONITORING_JOB_NAME,
         cron: "*/30 * * * *", // Every half hour
     });
 

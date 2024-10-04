@@ -1,7 +1,7 @@
 import { Devvit } from "@devvit/public-api";
 import { sendDelayedSummary } from "./createAndSendMessage.js";
 import { generalSettings } from "./settings.js";
-import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
+import { checkIfAppIsWorking, MONITORING_JOB_NAME, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
 import { settingsForUserFlair } from "./components/accountFlair.js";
 import { settingsForRecentSubreddits } from "./components/recentSubredditList.js";
 import { settingsForRecentComments } from "./components/recentComments.js";
@@ -45,7 +45,7 @@ Devvit.addSchedulerJob({
 });
 
 Devvit.addSchedulerJob({
-    name: "checkIfAppIsWorking",
+    name: MONITORING_JOB_NAME,
     onRun: checkIfAppIsWorking,
 });
 
