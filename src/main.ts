@@ -9,13 +9,15 @@ import { settingsForRecentPosts } from "./components/recentPosts.js";
 import { settingsForModNotes } from "./components/modNotes.js";
 import { settingsForAccountAge } from "./components/accountAge.js";
 import { settingsForAccountKarma } from "./components/accountKarma.js";
+import { settingsForAccountNSFW } from "./components/accountNSFW.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
     settingsForAccountKarma,
+    settingsForAccountNSFW,
     settingsForUserFlair,
     settingsForRecentSubreddits,
-    // Recent activity in your subreddit (Disabled by default)
+    // TODO: Recent activity in your subreddit (Disabled by default)
     settingsForRecentComments,
     settingsForRecentPosts,
     settingsForModNotes,

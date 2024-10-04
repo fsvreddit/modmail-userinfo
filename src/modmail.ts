@@ -213,7 +213,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
     const components = _.compact([
         getAccountAge(user, settings),
         getAccountKarma(user, settings),
-        getAccountNSFW(user),
+        getAccountNSFW(user, settings),
         ...await Promise.all([
             getAccountFlair(user, settings, context),
             getRecentSubreddits(userComments, settings, context),
