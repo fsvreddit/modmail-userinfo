@@ -1,8 +1,8 @@
 import { SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
 import { getSubredditName } from "../utility.js";
-import markdownEscape from "markdown-escape";
 import { IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settingsHelpers.js";
+import markdownEscape from "markdown-escape";
 
 enum RecentPostsSetting {
     IncludeRecentPosts = "includeRecentPosts",

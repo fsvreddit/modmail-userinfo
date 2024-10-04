@@ -1,8 +1,8 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { addDays } from "date-fns";
-import _ from "lodash";
 import { getSubredditName } from "../utility.js";
 import { numericFieldBetween } from "../settingsHelpers.js";
+import _ from "lodash";
 
 enum RecentSubredditSetting {
     NumberOfSubsInSummary = "numberOfSubsToIncludeInSummary",

@@ -1,6 +1,6 @@
 import { SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
-import markdownEscape from "markdown-escape";
 import { getSubredditName } from "../utility.js";
+import markdownEscape from "markdown-escape";
 
 enum AccountFlairSetting {
     IncludeUserFlair = "includeUserFlair",
