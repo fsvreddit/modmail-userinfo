@@ -7,14 +7,13 @@ import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { getSubredditName, userIsMod } from "./utility.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
-    if (event.messageAuthor && event.messageAuthor.name === context.appName) {
+    if (!event.messageAuthor || event.messageAuthor.name === context.appName) {
         return;
     }
 
     const redisKey = `processed-${event.conversationId}`;
     const alreadyProcessed = await context.redis.get(redisKey);
     if (alreadyProcessed) {
-        console.log("Already processed an action for this conversation. Either a reply or a duplicate trigger.");
         return;
     }
 
@@ -35,10 +34,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     }
 
     if (!conversationResponse.conversation) {
-        return;
-    }
-
-    if (!event.messageAuthor) {
         return;
     }
 
