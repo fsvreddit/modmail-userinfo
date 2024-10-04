@@ -4,10 +4,9 @@ import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
 import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendmodmail.js";
+import { getSubredditName } from "./utility.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
-    console.log("Received modmail trigger event.");
-
     if (event.messageAuthor && event.messageAuthor.name === context.appName) {
         console.log("Modmail event triggered by this app. Quitting.");
         return;
@@ -19,6 +18,8 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         console.log("Already processed an action for this conversation. Either a reply or a duplicate trigger.");
         return;
     }
+
+    console.log("Received a new modmail trigger event.");
 
     // Make a note that we've processed this conversation.
     await context.redis.set(redisKey, new Date().getTime().toString(), { expiration: addDays(new Date(), 7) });
@@ -34,15 +35,11 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    console.log("Got conversation response");
-
     if (!conversationResponse.conversation) {
-        console.log("No conversation");
         return;
     }
 
     if (!event.messageAuthor) {
-        console.log("No message author");
         return;
     }
 
@@ -72,8 +69,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    console.log(`Current conversation state: ${conversationResponse.conversation.state ?? "Unknown"}`);
-
     // Check to see if conversation is already archived e.g. from a ban message
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
@@ -89,8 +84,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         subredditName = event.conversationSubreddit.name;
     } else {
         // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit.
-        const subReddit = await context.reddit.getCurrentSubreddit();
-        subredditName = subReddit.name;
+        subredditName = await getSubredditName(context);
     }
 
     const settings = await context.settings.getAll();
