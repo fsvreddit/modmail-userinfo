@@ -1,5 +1,5 @@
 import { Devvit } from "@devvit/public-api";
-import { onModmailReceiveEvent, sendDelayedSummary } from "./modmail.js";
+import { sendDelayedSummary } from "./createAndSendmodmail.js";
 import { generalSettings } from "./settings.js";
 import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
 import { settingsForUserFlair } from "./components/accountFlair.js";
@@ -11,6 +11,7 @@ import { settingsForAccountAge } from "./components/accountAge.js";
 import { settingsForAccountKarma } from "./components/accountKarma.js";
 import { settingsForAccountNSFW } from "./components/accountNSFW.js";
 import { settingsForRecentSubredditComments } from "./components/recentSubredditComments.js";
+import { onModmailReceiveEvent } from "./handleModmailReceive.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
