@@ -217,7 +217,7 @@ export async function createUserSummaryModmail (context: TriggerContext, user: U
         getAccountNSFW(user, settings),
         ...await Promise.all([
             getAccountFlair(user, settings, context),
-            getRecentSubreddits(userComments.slice(0, 100), settings, context),
+            getRecentSubreddits(userComments, settings, context),
             getRecentSubredditCommentCount(userComments, settings, context),
             getRecentComments(userComments, settings, context),
             getRecentPosts(user.username, settings, context),

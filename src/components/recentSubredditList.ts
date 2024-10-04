@@ -5,6 +5,7 @@ import { getSubredditName } from "../utility.js";
 
 enum RecentSubredditSetting {
     NumberOfSubsInSummary = "numberOfSubsToIncludeInSummary",
+    NumberOfCommentsToCount = "numberOfCommentsForSubList",
     SubHistoryDisplayStyle = "subHistoryDisplayStyle",
 }
 
@@ -26,6 +27,17 @@ export const settingsForRecentSubreddits: SettingsFormField = {
             onValidate: ({ value }) => {
                 if (value && (value < 0 || value > 100)) {
                     return "Value must be between 0 and 100";
+                }
+            },
+        },
+        {
+            type: "number",
+            name: RecentSubredditSetting.NumberOfCommentsToCount,
+            label: "Number of recent comments to count subreddits over",
+            defaultValue: 100,
+            onValidate: ({ value }) => {
+                if (value && (value < 0 || value > 1000)) {
+                    return "Value must be between 0 and 1000";
                 }
             },
         },
@@ -87,8 +99,13 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
         return "";
     }
 
-    const countedSubs = _.countBy(recentComments.map(x => x.subredditName));
-    const subCommentCounts = Object.keys(countedSubs).map(x => ({ subName: x, commentCount: countedSubs[x] } as SubCommentCount));
+    const numberOfCommentsToCheck = settings[RecentSubredditSetting.NumberOfCommentsToCount] as number | undefined ?? 100;
+    if (numberOfCommentsToCheck === 0) {
+        return "";
+    }
+
+    const countedSubs = _.countBy(recentComments.slice(0, numberOfCommentsToCheck).map(x => x.subredditName));
+    const subCommentCounts = _.toPairs(countedSubs).map(([subName, commentCount]) => ({ subName, commentCount } as SubCommentCount));
 
     // Filter comment list for subreddits for visibility. This is because we don't want to show counts for private subreddits
     // that this app might be installed in, but that an average person wouldn't necessarily know of. We want to protect users'
@@ -97,9 +114,9 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
 
     const filteredSubCommentCounts: SubCommentCount[] = [];
 
+    const subredditName = await getSubredditName(context);
     if (numberOfSubsToReportOn > 0) {
         for (const subCommentItem of subCommentCounts.sort((a, b) => b.commentCount - a.commentCount)) {
-            const subredditName = await getSubredditName(context);
             if (subCommentItem.subName === subredditName) {
                 filteredSubCommentCounts.push(subCommentItem);
             } else {
