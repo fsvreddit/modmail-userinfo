@@ -69,6 +69,7 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
         }
         result += ":\n\n";
         result += `> ${comment.body.split("\n").join("\n> ")}`; // string.replaceAll not available without es2021
+        result += "\n\n";
     }
 
     result += "---";
