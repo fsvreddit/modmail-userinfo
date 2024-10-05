@@ -10,7 +10,7 @@ import { settingsForModNotes } from "./components/modNotes.js";
 import { settingsForAccountAge } from "./components/accountAge.js";
 import { settingsForAccountKarma } from "./components/accountKarma.js";
 import { settingsForAccountNSFW } from "./components/accountNSFW.js";
-import { settingsForRecentSubredditComments } from "./components/recentSubredditComments.js";
+import { settingsForRecentSubredditComments } from "./components/recentSubredditContent.js";
 import { onModmailReceiveEvent } from "./handleModmailReceive.js";
 import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 

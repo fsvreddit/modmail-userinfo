@@ -9,7 +9,7 @@ import { getAccountKarma } from "./components/accountKarma.js";
 import { getAccountNSFW } from "./components/accountNSFW.js";
 import { getAccountFlair } from "./components/accountFlair.js";
 import _ from "lodash";
-import { getRecentSubredditCommentCount } from "./components/recentSubredditComments.js";
+import { getRecentSubredditCommentCount, getRecentSubredditPostCount } from "./components/recentSubredditContent.js";
 import { getUserShadowbanText } from "./components/shadowbanInfo.js";
 
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
@@ -42,7 +42,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
     if (user) {
         const userComments = await user.getComments({
             sort: "new",
-            limit: 1000,
+            limit: 100,
         }).all();
 
         // Retrieve all components, removing any blanks.
@@ -54,6 +54,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
                 getAccountFlair(user, settings, context),
                 getRecentSubreddits(userComments, settings, context),
                 getRecentSubredditCommentCount(userComments, settings, context),
+                getRecentSubredditPostCount(username, settings, context),
                 getRecentComments(userComments, settings, context),
                 getRecentPosts(user.username, settings, context),
                 getModNotes(user.username, settings, context),
