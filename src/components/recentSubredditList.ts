@@ -127,10 +127,10 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
         return;
     }
 
-    const [subHistoryDisplayStyle] = settings[RecentSubredditSetting.SubHistoryDisplayStyle] as string[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];
+    const [subHistoryDisplayStyle] = settings[RecentSubredditSetting.SubHistoryDisplayStyle] as SubHistoryDisplayStyleOption[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];
     let result = "**Recent comments across Reddit**: ";
 
-    if (subHistoryDisplayStyle as SubHistoryDisplayStyleOption === SubHistoryDisplayStyleOption.Bullet) {
+    if (subHistoryDisplayStyle === SubHistoryDisplayStyleOption.Bullet) {
         result += "\n\n";
         result += filteredSubCommentCounts.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
     } else {

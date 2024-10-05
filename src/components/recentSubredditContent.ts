@@ -22,7 +22,7 @@ export const settingsForRecentSubredditComments: SettingsFormField = {
         {
             name: RecentSubredditCommentSetting.EnablePostCount,
             type: "boolean",
-            label: "Enable output of recent subreddit comment counts",
+            label: "Enable output of recent subreddit post counts",
             defaultValue: false,
         },
         {
@@ -48,7 +48,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
     const allComments = [...userComments];
 
     const lastComment = allComments[userComments.length - 1];
-    if (allComments.length === 100 && lastComment.createdAt < subDays(new Date(), numberOfDays)) {
+    if (allComments.length > 0 && allComments.length < 1000 && lastComment.createdAt < subDays(new Date(), numberOfDays)) {
         // Get more.
         const timeframe = numberOfDays < 31 ? "month" : undefined;
         const nextComments = await context.reddit.getCommentsByUser({
@@ -56,7 +56,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
             after: userComments[userComments.length - 1].id,
             sort: "new",
             timeframe,
-            limit: 1000,
+            limit: 1000 - allComments.length,
         }).all();
 
         allComments.push(...nextComments);
@@ -66,7 +66,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
 
     let actualNumberOfDays: number | undefined;
     if (userComments.length > 0) {
-        const oldestComment = userComments[userComments.length - 1];
+        const oldestComment = allComments[allComments.length - 1];
         actualNumberOfDays = oldestComment.createdAt < subDays(new Date(), numberOfDays) ? numberOfDays : differenceInDays(new Date(), oldestComment.createdAt);
     }
 

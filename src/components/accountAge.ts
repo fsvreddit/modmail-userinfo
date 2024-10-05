@@ -43,8 +43,9 @@ export function getAccountAge (user: User, settings: SettingsValues): string | u
     }
 
     const [accountAgeFormat] = settings[AccountAgeSetting.AccountAgeFormat] as AccountAgeFormat[] | undefined ?? [AccountAgeFormat.Approximate];
+    let accountAge: string;
     if (accountAgeFormat === AccountAgeFormat.Approximate) {
-        return `**Age**: ${formatDistanceToNow(user.createdAt)}`;
+        accountAge = formatDistanceToNow(user.createdAt);
     } else {
         const units: (keyof Duration)[] = ["years", "months", "days"];
         if (differenceInDays(new Date(), user.createdAt) < 2) {
@@ -54,6 +55,8 @@ export function getAccountAge (user: User, settings: SettingsValues): string | u
             units.push("minutes");
         }
         const duration = intervalToDuration({ start: user.createdAt, end: new Date() });
-        return `**Age**: ${formatDuration(duration, { format: units })}`;
+        accountAge = formatDuration(duration, { format: units });
     }
+
+    return `**Age**: ${accountAge}`;
 }

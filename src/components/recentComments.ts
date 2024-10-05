@@ -36,10 +36,10 @@ export const settingsForRecentComments: SettingsFormField = {
 };
 
 export async function getRecentComments (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
-    const [includeRecentComments] = settings[RecentCommentsSetting.IncludeRecentComments] as string[] | undefined ?? [IncludeRecentContentOption.None];
+    const [includeRecentComments] = settings[RecentCommentsSetting.IncludeRecentComments] as IncludeRecentContentOption[] | undefined ?? [IncludeRecentContentOption.None];
     const numberOfRemovedCommentsToInclude = settings[RecentCommentsSetting.NumberOfCommentsToInclude] as number | undefined ?? 3;
 
-    if (numberOfRemovedCommentsToInclude === 0 || includeRecentComments as IncludeRecentContentOption === IncludeRecentContentOption.None) {
+    if (numberOfRemovedCommentsToInclude === 0 || includeRecentComments === IncludeRecentContentOption.None) {
         return;
     }
 
@@ -47,7 +47,7 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
     const subredditName = await getSubredditName(context);
 
     const filteredComments = recentComments
-        .filter(x => (includeRecentComments as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved || x.removed) && x.subredditName === subredditName)
+        .filter(x => (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved || x.removed) && x.subredditName === subredditName)
         .slice(0, numberOfRemovedCommentsToInclude);
 
     if (filteredComments.length === 0) {
@@ -56,7 +56,7 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
 
     let result: string;
 
-    if (includeRecentComments as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved) {
+    if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved) {
         result = `**Recent comments on ${subredditName}**:\n\n`;
     } else {
         result = `**Recently removed comments on ${subredditName}**:\n\n`;
@@ -64,11 +64,11 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
 
     for (const comment of filteredComments) {
         result += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink})`;
-        if (includeRecentComments as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved && comment.removed) {
+        if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved && comment.removed) {
             result += " (removed)";
         }
         result += ":\n\n";
-        result += `> ${comment.body.split("\n").join("\n> ")}`; // string.replaceAll not available without es2021
+        result += `> ${comment.body.split("\n").join("\n> ")}`;
         result += "\n\n";
     }
 

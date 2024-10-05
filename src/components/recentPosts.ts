@@ -43,10 +43,10 @@ export const settingsForRecentPosts: SettingsFormField = {
 };
 
 export async function getRecentPosts (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
-    const [includeRecentPosts] = settings[RecentPostsSetting.IncludeRecentPosts] as string[] | undefined ?? [IncludeRecentContentOption.None];
+    const [includeRecentPosts] = settings[RecentPostsSetting.IncludeRecentPosts] as IncludeRecentContentOption[] | undefined ?? [IncludeRecentContentOption.None];
     const numberOfPostsToInclude = settings[RecentPostsSetting.NumberOfPostsToInclude] as number | undefined ?? 3;
 
-    if (numberOfPostsToInclude === 0 || includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.None) {
+    if (numberOfPostsToInclude === 0 || includeRecentPosts === IncludeRecentContentOption.None) {
         return;
     }
 
@@ -63,7 +63,7 @@ export async function getRecentPosts (username: string, settings: SettingsValues
 
     recentPosts = recentPosts.filter(post => post.subredditId === context.subredditId)
         .filter(post => (
-            (includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.VisibleAndRemoved)
+            (includeRecentPosts === IncludeRecentContentOption.VisibleAndRemoved)
             || ((post.removed || post.spam) && post.removedBy && !modsToIgnoreRemovalsFrom.includes(post.removedBy.toLowerCase()))))
         .slice(0, numberOfPostsToInclude);
 
@@ -73,7 +73,7 @@ export async function getRecentPosts (username: string, settings: SettingsValues
 
     const subredditName = await getSubredditName(context);
 
-    let result = `**Recent ${includeRecentPosts as IncludeRecentContentOption === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
+    let result = `**Recent ${includeRecentPosts === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
     result += recentPosts
         .map(post => `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})`)
         .join("\n");
