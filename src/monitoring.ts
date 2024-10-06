@@ -1,6 +1,7 @@
-import { SettingsFormField, TriggerContext } from "@devvit/public-api";
+import { JobContext, SettingsFormField, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
+import { getSubredditName } from "./utility.js";
 
 export enum MonitoringSetting {
     MonitoringSubreddit = "monitoringSubreddit",
@@ -25,12 +26,12 @@ export const settingsForMonitoring: SettingsFormField[] = [
 
 export const MONITORING_JOB_NAME = "checkIfAppIsWorking";
 
-export async function checkIfAppIsWorking (_: unknown, context: TriggerContext) {
-    const currentSubreddit = await context.reddit.getCurrentSubreddit();
+export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
+    const subredditName = await getSubredditName(context);
     const settings = await context.settings.getAll();
 
     const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
-    if (currentSubreddit.name.toLowerCase() !== monitoringSubreddit) {
+    if (subredditName.toLowerCase() !== monitoringSubreddit) {
         return;
     }
 
@@ -43,7 +44,7 @@ export async function checkIfAppIsWorking (_: unknown, context: TriggerContext) 
     let errorMessage: string | undefined;
     try {
         await context.reddit.modMail.getConversations({
-            subreddits: [currentSubreddit.name],
+            subreddits: [subredditName],
             state: "all",
         });
         console.log("Monitoring: App appears to be working.");
@@ -98,11 +99,11 @@ async function sendMessageToWebhook (webhookUrl: string, message: string) {
     );
 }
 
-export async function scheduleJobOnAppUpgradeOrInstall (_: AppInstall | AppUpgrade, context: TriggerContext) {
+export async function scheduleJobOnAppUpgradeOrInstall (_: AppInstall | AppUpgrade, context: JobContext) {
     await scheduleJobs(context);
 }
 
-export async function scheduleJobs (context: TriggerContext, conversationId?: string) {
+export async function scheduleJobs (context: TriggerContext | JobContext, conversationId?: string) {
     const currentJobs = await context.scheduler.listJobs();
 
     // Remove any scheduled monitoring jobs

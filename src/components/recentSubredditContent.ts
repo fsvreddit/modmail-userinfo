@@ -48,7 +48,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
     const allComments = [...userComments];
 
     const lastComment = allComments[userComments.length - 1];
-    if (allComments.length > 0 && allComments.length < 1000 && lastComment.createdAt < subDays(new Date(), numberOfDays)) {
+    if (allComments.length > 0 && lastComment.createdAt > subDays(new Date(), numberOfDays)) {
         // Get more.
         const timeframe = numberOfDays < 31 ? "month" : undefined;
         const nextComments = await context.reddit.getCommentsByUser({
@@ -74,7 +74,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
     let result = `**Recent comments on /r/${subredditName}**: ${subredditComments.length}`;
 
     if (actualNumberOfDays && actualNumberOfDays < numberOfDays) {
-        result += ` (recent history only covers ${actualNumberOfDays} ${pluralize("day", actualNumberOfDays)})`;
+        result += ` in last ${actualNumberOfDays} ${pluralize("day", actualNumberOfDays)} (unable to look back further)`;
     } else {
         result += ` in last ${numberOfDays} ${pluralize("day", numberOfDays)}`;
     }

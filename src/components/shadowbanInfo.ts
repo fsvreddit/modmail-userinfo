@@ -1,4 +1,4 @@
-import { SettingsFormField, SettingsValues } from "@devvit/public-api";
+import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
 
 enum ShadowbanCheckSetting {
     EnableOption = "enableShadowbanOutput",
@@ -11,8 +11,13 @@ export const settingsForShadowbanCheck: SettingsFormField = {
     defaultValue: true,
 };
 
-export function getUserShadowbanText (username: string, settings: SettingsValues): string | undefined {
+export function getUserShadowbanText (username: string, user: User | undefined, settings: SettingsValues): string | undefined {
     if (!settings[ShadowbanCheckSetting.EnableOption]) {
+        return;
+    }
+
+    if (user) {
+        // Should never happen, but just in case someone calls this from the wrong place.
         return;
     }
 

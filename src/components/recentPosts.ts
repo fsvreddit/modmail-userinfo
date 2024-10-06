@@ -61,7 +61,8 @@ export async function getRecentPosts (username: string, settings: SettingsValues
         limit: 100,
     }).all();
 
-    recentPosts = recentPosts.filter(post => post.subredditId === context.subredditId)
+    recentPosts = recentPosts
+        .filter(post => post.subredditId === context.subredditId)
         .filter(post => (
             (includeRecentPosts === IncludeRecentContentOption.VisibleAndRemoved)
             || ((post.removed || post.spam) && post.removedBy && !modsToIgnoreRemovalsFrom.includes(post.removedBy.toLowerCase()))))

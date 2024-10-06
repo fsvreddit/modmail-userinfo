@@ -62,7 +62,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
         ]);
     } else {
         components = _.compact([
-            getUserShadowbanText(username, settings),
+            getUserShadowbanText(username, user, settings),
         ]);
     }
 

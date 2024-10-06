@@ -44,16 +44,17 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
     }
 
     const [locale] = settings[GeneralSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];
-    const subredditName = await getSubredditName(context);
 
     const filteredComments = recentComments
-        .filter(x => (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved || x.removed) && x.subredditName === subredditName)
+        .filter(comment => comment.subredditId === context.subredditId)
+        .filter(comment => includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved || comment.removed)
         .slice(0, numberOfRemovedCommentsToInclude);
 
     if (filteredComments.length === 0) {
         return;
     }
 
+    const subredditName = await getSubredditName(context);
     let result: string;
 
     if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved) {

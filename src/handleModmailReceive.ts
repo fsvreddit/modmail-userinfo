@@ -40,7 +40,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     const messagesInConversation = Object.values(conversationResponse.conversation.messages);
 
     const firstMessage = messagesInConversation[0];
-    console.log(`First Message ID: ${firstMessage.id ?? "undefined"}`);
 
     const username = conversationResponse.conversation.participant?.name;
     // Ensure that the modmail has a participant i.e. is about a user, and not a sub to sub modmail or internal discussion

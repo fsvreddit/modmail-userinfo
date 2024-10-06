@@ -7,7 +7,7 @@
 * User flair
 * If the user is flagged as NSFW
 * Recent comment summary (subreddit name and comment count) in other subreddits
-* The number of comments made in your subreddit in the past few weeks
+* The number of posts and/or comments made in your subreddit in a configurable timeframe
 * Recently removed comments in the current subreddit
 * Recent subreddit posts
 * Toolbox usernotes or Reddit native mod notes
@@ -43,8 +43,9 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 * Output is now fully configurable. All options can be disabled or enabled individually, allowing you to pick and choose what you find useful and hide what you ignore
 * Native Reddit mod notes no longer fail if the user has any mod notes without a post or comment link
 * "Recent posts" header no longer shows if there are no posts to include
-* Added new option for account age output, to allow for exact account age. Granularity is day (if at least 2 days old), hour (if between 6 hours and 2 days old) and minute (if under 6 hours old). The existing approximate output (e.g. "about 1 year") is still available.
-* Added new option to include a line if the user is shadowbanned (no other information can be included if that is the case).
+* Added new option for account age output, to allow for exact account age. Granularity is day (if at least 2 days old), hour (if between 6 hours and 2 days old) and minute (if under 6 hours old). The existing approximate output (e.g. "about 1 year") is still available
+* Added new option to show the number of recent posts or comments in your subreddit within a configurable timeframe
+* Added new option to include a line if the user is shadowbanned (no other information can be included if that is the case)
 * Lots of internal code improvements
 
 ### v1.5.1

@@ -1,5 +1,5 @@
 import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, UserNoteLabel, WikiPage } from "@devvit/public-api";
-import { RawSubredditConfig, RawUsernoteType } from "toolbox-devvit/dist/types/RawSubredditConfig.js";
+import { RawSubredditConfig } from "toolbox-devvit/dist/types/RawSubredditConfig.js";
 import { GeneralSetting } from "../settings.js";
 import { ToolboxClient, Usernote } from "toolbox-devvit";
 import { getPostOrCommentFromRedditId, getSubredditName } from "../utility.js";
@@ -109,13 +109,6 @@ function getRedditNoteTypeFromEnum (noteType: UserNoteLabel | undefined): string
     }
 }
 
-function getToolboxNoteTypeFromEnum (noteType: string | undefined, noteTypes: RawUsernoteType[]): string | undefined {
-    const result = noteTypes.find(x => x.key === noteType);
-    if (result) {
-        return result.text;
-    }
-}
-
 async function getUserNoteFromRedditModNote (reddit: RedditAPIClient, modNote: ModNote): Promise<CombinedUserNote | undefined> {
     // Function to transform a Reddit mod note into the Toolbox Usernote format, for ease of handling.
     if (!modNote.userNote?.note) {
@@ -152,7 +145,7 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
         console.log(`Native mod notes found: ${results.length}`);
         return _.compact(results);
     } catch (error) {
-        console.log(error); // Currently, this may crash if there are any notes without a permalink
+        console.log(error); // This shouldn't happen any more.
         return [];
     }
 }
@@ -178,6 +171,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
         }
 
         const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;
+        const noteTypes = _.fromPairs(toolboxConfig.usernoteColors.map(item => [item.key, item.text]));
 
         const results = userNotes.map(userNote => ({
             noteSource: "Toolbox",
@@ -186,7 +180,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
             timestamp: userNote.timestamp,
             username: userNote.username,
             contextPermalink: userNote.contextPermalink,
-            noteType: getToolboxNoteTypeFromEnum(userNote.noteType, toolboxConfig.usernoteColors),
+            noteType: userNote.noteType ? noteTypes[userNote.noteType] : undefined,
         }) as CombinedUserNote);
 
         return results;
