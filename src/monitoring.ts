@@ -1,18 +1,41 @@
-import { ScheduledJobEvent, TriggerContext } from "@devvit/public-api";
+import { JobContext, SettingsFormField, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
-import { AppSetting } from "./settings.js";
+import { getSubredditName } from "./utility.js";
 
-export async function checkIfAppIsWorking (_: ScheduledJobEvent, context: TriggerContext) {
-    const currentSubreddit = await context.reddit.getCurrentSubreddit();
+export enum MonitoringSetting {
+    MonitoringSubreddit = "monitoringSubreddit",
+    MonitoringWebhook = "monitoringWebhook",
+}
+
+export const settingsForMonitoring: SettingsFormField[] = [
+    {
+        type: "string",
+        name: MonitoringSetting.MonitoringSubreddit,
+        label: "Monitoring Subreddit",
+        helpText: "The name of a subreddit (omitting the leading /r/) that half hourly monitoring jobs will run on",
+        scope: "app",
+    },
+    {
+        type: "string",
+        name: MonitoringSetting.MonitoringWebhook,
+        label: "Webhook to send uptime alerts to",
+        scope: "app",
+    },
+];
+
+export const MONITORING_JOB_NAME = "checkIfAppIsWorking";
+
+export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
+    const subredditName = await getSubredditName(context);
     const settings = await context.settings.getAll();
 
-    const monitoringSubreddit = settings[AppSetting.MonitoringSubreddit] as string | undefined;
-    if (currentSubreddit.name.toLowerCase() !== monitoringSubreddit) {
+    const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
+    if (subredditName.toLowerCase() !== monitoringSubreddit) {
         return;
     }
 
-    const webhookUrl = settings[AppSetting.MonitoringWebhook] as string | undefined;
+    const webhookUrl = settings[MonitoringSetting.MonitoringWebhook] as string | undefined;
     if (!webhookUrl) {
         return;
     }
@@ -21,7 +44,7 @@ export async function checkIfAppIsWorking (_: ScheduledJobEvent, context: Trigge
     let errorMessage: string | undefined;
     try {
         await context.reddit.modMail.getConversations({
-            subreddits: [currentSubreddit.name],
+            subreddits: [subredditName],
             state: "all",
         });
         console.log("Monitoring: App appears to be working.");
@@ -76,15 +99,15 @@ async function sendMessageToWebhook (webhookUrl: string, message: string) {
     );
 }
 
-export async function scheduleJobOnAppUpgradeOrInstall (_: AppInstall | AppUpgrade, context: TriggerContext) {
+export async function scheduleJobOnAppUpgradeOrInstall (_: AppInstall | AppUpgrade, context: JobContext) {
     await scheduleJobs(context);
 }
 
-export async function scheduleJobs (context: TriggerContext, conversationId?: string) {
+export async function scheduleJobs (context: TriggerContext | JobContext, conversationId?: string) {
     const currentJobs = await context.scheduler.listJobs();
 
     // Remove any scheduled monitoring jobs
-    const monitoringJobs = currentJobs.filter(job => job.name === "checkIfAppIsWorking");
+    const monitoringJobs = currentJobs.filter(job => job.name === MONITORING_JOB_NAME);
     if (monitoringJobs.length > 0) {
         await Promise.all(monitoringJobs.map(job => context.scheduler.cancelJob(job.id)));
         console.log("Scheduler: Removed existing jobs.");
@@ -95,14 +118,14 @@ export async function scheduleJobs (context: TriggerContext, conversationId?: st
 
     const settings = await context.settings.getAll();
 
-    const monitoringSubreddit = settings[AppSetting.MonitoringSubreddit] as string | undefined;
+    const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
     if (currentSubreddit.name.toLowerCase() !== monitoringSubreddit) {
         console.log(`Scheduler: /r/${currentSubreddit.name} is not a permitted monitoring subreddit.`);
         return;
     }
 
     await context.scheduler.runJob({
-        name: "checkIfAppIsWorking",
+        name: MONITORING_JOB_NAME,
         cron: "*/30 * * * *", // Every half hour
     });
 

@@ -1,9 +1,33 @@
 import { Devvit } from "@devvit/public-api";
-import { onModmailReceiveEvent, sendDelayedSummary } from "./modmail.js";
-import { appSettings } from "./settings.js";
-import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall } from "./monitoring.js";
+import { sendDelayedSummary } from "./createAndSendMessage.js";
+import { generalSettings } from "./settings.js";
+import { checkIfAppIsWorking, MONITORING_JOB_NAME, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
+import { settingsForUserFlair } from "./components/accountFlair.js";
+import { settingsForRecentSubreddits } from "./components/recentSubredditList.js";
+import { settingsForRecentComments } from "./components/recentComments.js";
+import { settingsForRecentPosts } from "./components/recentPosts.js";
+import { settingsForModNotes } from "./components/modNotes.js";
+import { settingsForAccountAge } from "./components/accountAge.js";
+import { settingsForAccountKarma } from "./components/accountKarma.js";
+import { settingsForAccountNSFW } from "./components/accountNSFW.js";
+import { settingsForRecentSubredditComments } from "./components/recentSubredditContent.js";
+import { onModmailReceiveEvent } from "./handleModmailReceive.js";
+import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 
-Devvit.addSettings(appSettings);
+Devvit.addSettings([
+    settingsForAccountAge,
+    settingsForAccountKarma,
+    settingsForAccountNSFW,
+    settingsForUserFlair,
+    settingsForRecentSubreddits,
+    settingsForRecentSubredditComments,
+    settingsForRecentComments,
+    settingsForRecentPosts,
+    settingsForModNotes,
+    settingsForShadowbanCheck,
+    generalSettings,
+    ...settingsForMonitoring,
+]);
 
 Devvit.addTrigger({
     event: "ModMail",
@@ -21,7 +45,7 @@ Devvit.addSchedulerJob({
 });
 
 Devvit.addSchedulerJob({
-    name: "checkIfAppIsWorking",
+    name: MONITORING_JOB_NAME,
     onRun: checkIfAppIsWorking,
 });
 
