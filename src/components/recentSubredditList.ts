@@ -64,7 +64,7 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
 
     let isVisible = true;
     try {
-        const subreddit = await context.reddit.getSubredditByName(subredditName);
+        const subreddit = await context.reddit.getSubredditInfoByName(subredditName);
         isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
 
         // Cache the value for a week, unlikely to change that often.
