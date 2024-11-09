@@ -1,5 +1,4 @@
-import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, UserNoteLabel, WikiPage } from "@devvit/public-api";
-import { RawSubredditConfig } from "toolbox-devvit/dist/types/RawSubredditConfig.js";
+import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, UserNoteLabel } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
 import { ToolboxClient, Usernote } from "toolbox-devvit";
 import { getPostOrCommentFromRedditId, getSubredditName } from "../utility.js";
@@ -160,18 +159,8 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
             return [];
         }
 
-        let toolboxConfigPage: WikiPage;
-        try {
-            toolboxConfigPage = await reddit.getWikiPage(subredditName, "toolbox");
-        } catch (error) {
-            // This shouldn't happen if there are any Toolbox notes, but need to check.
-            console.log("Error retrieving Toolbox configuration.");
-            console.log(error);
-            return [];
-        }
-
-        const toolboxConfig = JSON.parse(toolboxConfigPage.content) as RawSubredditConfig;
-        const noteTypes = _.fromPairs(toolboxConfig.usernoteColors.map(item => [item.key, item.text]));
+        const config = await toolbox.getConfig(subredditName);
+        const noteTypes = _.fromPairs(config.getAllNoteTypes().map(item => [item.key, item.text]));
 
         const results = userNotes.map(userNote => ({
             noteSource: "Toolbox",
