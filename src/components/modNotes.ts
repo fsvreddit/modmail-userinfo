@@ -141,7 +141,6 @@ async function getRedditModNotesAsUserNotes (reddit: RedditAPIClient, subredditN
         modNotes = modNotes.filter(note => note.userNote?.redditId || !regex.test(note.userNote?.note ?? ""));
 
         const results = await Promise.all(modNotes.map(modNote => getUserNoteFromRedditModNote(reddit, modNote)));
-        console.log(`Native mod notes found: ${results.length}`);
         return _.compact(results);
     } catch (error) {
         console.log(error); // This shouldn't happen any more.
@@ -153,7 +152,6 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
     const toolbox = new ToolboxClient(reddit);
     try {
         const userNotes = await toolbox.getUsernotesOnUser(subredditName, userName);
-        console.log(`Toolbox notes found: ${userNotes.length}`);
 
         if (userNotes.length === 0) {
             return [];

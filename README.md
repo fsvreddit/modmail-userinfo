@@ -40,7 +40,7 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 
 ### v1.6.1
 
-* Improved text on settings page
+* Fixed misleading text on settings page
 
 ### v1.6.0
 

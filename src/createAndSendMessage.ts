@@ -15,6 +15,7 @@ import { getUserShadowbanText } from "./components/shadowbanInfo.js";
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
     if (!modmailMessage) {
+        console.log(`Nothing to send for ${username}`);
         return false;
     }
 
@@ -23,6 +24,8 @@ export async function createAndSendSummaryModmail (context: TriggerContext, user
         conversationId,
         isInternal: true,
     });
+
+    console.log(`Summary sent for ${username}`);
 
     return true;
 }
