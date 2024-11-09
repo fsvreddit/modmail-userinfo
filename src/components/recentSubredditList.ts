@@ -58,17 +58,15 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
     const redisKey = `subredditVisibility-${subredditName}`;
     const cachedValue = await context.redis.get(redisKey);
     if (cachedValue) {
-        console.log(`Visibility for ${subredditName} already cached (${cachedValue})`);
         return cachedValue === "true";
     }
 
     let isVisible = true;
     try {
-        const subreddit = await context.reddit.getSubredditByName(subredditName);
+        const subreddit = await context.reddit.getSubredditInfoByName(subredditName);
         isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
 
         // Cache the value for a week, unlikely to change that often.
-        console.log(`Caching visibility for ${subredditName} (${JSON.stringify(isVisible)})`);
         await context.redis.set(redisKey, JSON.stringify(isVisible), { expiration: addDays(new Date(), 7) });
     } catch (error) {
         // Error retrieving subreddit. Subreddit is most likely to be public but gated due to controversial topics.
@@ -103,8 +101,6 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     // Filter comment list for subreddits for visibility. This is because we don't want to show counts for private subreddits
     // that this app might be installed in, but that an average person wouldn't necessarily know of. We want to protect users'
     // privacy somewhat so limit output to what a normal user would see.
-    console.log(`Content found in ${subCommentCounts.length} subreddits. Need to return no more than ${numberOfSubsToReportOn}`);
-
     const filteredSubCommentCounts: SubCommentCount[] = [];
 
     const subredditName = await getSubredditName(context);

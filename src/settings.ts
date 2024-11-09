@@ -48,7 +48,7 @@ export const generalSettings: SettingsFormField = {
             type: "boolean",
             name: GeneralSetting.CreateSummaryOnOutgoingMessages,
             label: "Create modmail summary on outgoing modmails",
-            helpText: "This includes automated outgoing modmail, such as ban messages, Approved User notifications and more.",
+            helpText: "This includes automated outgoing modmail, such as ban messages, Approved User notifications and more. Summaries relate to the recipient, not the mod in these cases",
             defaultValue: true,
         },
         {

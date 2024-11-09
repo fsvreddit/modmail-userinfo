@@ -12,7 +12,7 @@ enum RecentPostsSetting {
 
 export const settingsForRecentPosts: SettingsFormField = {
     type: "group",
-    label: "Recent comment activity in your subreddit",
+    label: "Recent post activity in your subreddit",
     fields: [
         {
             type: "select",
