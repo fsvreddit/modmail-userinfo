@@ -7,7 +7,7 @@ export enum IncludeRecentContentOption {
 }
 
 export function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEvent<string[]>) {
-    if (!event.value || event.value.length !== 1) {
+    if (event.value?.length !== 1) {
         return "You must choose an option";
     }
 }
