@@ -6,15 +6,13 @@ export enum IncludeRecentContentOption {
     Removed = "removed",
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-export function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEvent<string[]>): void | string {
+export function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEvent<string[]>) {
     if (!event.value || event.value.length !== 1) {
         return "You must choose an option";
     }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-export function numericFieldBetween (value: number | undefined, min: number, max: number): void | string {
+export function numericFieldBetween (value: number | undefined, min: number, max: number) {
     if (value && (value < min || value > max)) {
         return `Value must be between ${min} and ${max}`;
     }
