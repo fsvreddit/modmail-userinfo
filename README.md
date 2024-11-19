@@ -38,6 +38,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.6.2
+
+* Fixed an issue which led to undercounting comments in the "Recent comment count" output
+
 ### v1.6.1
 
 * Fixed misleading text on settings page

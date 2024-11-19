@@ -62,7 +62,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
         allComments.push(...nextComments);
     }
 
-    const subredditComments = userComments.filter(comment => comment.subredditId === context.subredditId && comment.createdAt > subDays(new Date(), numberOfDays));
+    const subredditComments = allComments.filter(comment => comment.subredditId === context.subredditId && comment.createdAt > subDays(new Date(), numberOfDays));
 
     let actualNumberOfDays: number | undefined;
     if (userComments.length > 0) {
