@@ -16,7 +16,7 @@ export async function getSubredditName (context: TriggerContext): Promise<string
         return context.subredditName;
     }
 
-    // This shouldn't happen, but add a fallback just in case.
+    // This shouldn't happen, but add a fallback just in case
     return (await context.reddit.getCurrentSubreddit()).name;
 }
 

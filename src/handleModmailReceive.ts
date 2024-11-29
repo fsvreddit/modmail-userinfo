@@ -19,7 +19,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     console.log("Received a new modmail trigger event.");
 
-    // Make a note that we've processed this conversation.
+    // Make a note that we've processed this conversation
     await context.redis.set(redisKey, new Date().getTime().toString(), { expiration: addDays(new Date(), 7) });
 
     let conversationResponse: GetConversationResponse;
@@ -46,7 +46,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     if (!conversationResponse.conversation.participant || !username) {
         console.log("There is no participant for the modmail conversation e.g. internal mod discussion");
 
-        // Special handling: Schedule jobs if !monitor command is run, and this is the monitoring subreddit.
+        // Special handling: Schedule jobs if !monitor command is run, and this is the monitoring subreddit
         if (firstMessage.body?.includes("!monitor")) {
             const monitoringSubreddit = await context.settings.get<string>(MonitoringSetting.MonitoringSubreddit);
             const subreddit = await context.reddit.getCurrentSubreddit();
@@ -57,7 +57,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    // Check that the first message in the entire conversation was for this person.
+    // Check that the first message in the entire conversation was for this person
     if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
         console.log("Message isn't the very first. Quitting");
         return;
@@ -71,7 +71,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     try {
         user = await context.reddit.getUserByUsername(username);
     } catch {
-        //
     }
 
     if (!user) {
@@ -82,7 +81,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     if (event.conversationSubreddit) {
         subredditName = event.conversationSubreddit.name;
     } else {
-        // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit.
+        // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit
         subredditName = await getSubredditName(context);
     }
 
@@ -93,7 +92,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    // Check if user is on the ignore list.
+    // Check if user is on the ignore list
     const usersToIgnore = settings[GeneralSetting.UsernamesToIgnore] as string | undefined;
     if (usersToIgnore) {
         const userList = usersToIgnore.split(",");
@@ -107,7 +106,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     if (!settings[GeneralSetting.CreateSummaryForModerators]) {
         let userIsModerator = conversationResponse.conversation.participant.isMod;
         if (!userIsModerator) {
-            // They may actually be a mod, just not with Modmail permissions.
+            // They may actually be a mod, just not with modmail permissions
             userIsModerator = await userIsMod(username, context);
         }
         if (userIsModerator) {
@@ -145,7 +144,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     }
 
     const copyOPAfterSummary = settings[GeneralSetting.CopyOPAfterSummary] as boolean | undefined ?? false;
-    // If option enabled, and the message is from the participant, copy the OP's body as a new message.
+    // If option enabled, and the message is from the participant, copy the OP's body as a new message
     if (copyOPAfterSummary && !conversationIsArchived) {
         console.log("Copying original message after summary");
         const firstMessage = Object.values(conversationResponse.conversation.messages)[0];
@@ -160,7 +159,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         }
     }
 
-    // If conversation was previously archived (e.g. a ban) archive it again.
+    // If conversation was previously archived (e.g. a ban) archive it again
     if (conversationIsArchived) {
         await context.reddit.modMail.archiveConversation(event.conversationId);
     }
