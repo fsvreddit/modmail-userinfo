@@ -30,7 +30,7 @@ The Developer Platform does not provide access to subreddit karma. If this ever 
 
 If a user is shadowbanned, no useful information can be shown about the user. However, the app can tell you that the user is shadowbanned (not obvious on mobile modmail).
 
-## About
+## Source Code and Licence
 
 This app is open source. You can find the code on GitHub [here](https://github.com/fsvreddit/modmail-userinfo).
 
