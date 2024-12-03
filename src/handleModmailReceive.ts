@@ -71,6 +71,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     try {
         user = await context.reddit.getUserByUsername(username);
     } catch {
+        //
     }
 
     if (!user) {

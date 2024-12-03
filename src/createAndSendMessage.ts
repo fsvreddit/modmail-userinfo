@@ -104,6 +104,7 @@ export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | 
             try {
                 user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
             } catch {
+                //
             }
 
             if (!user) {
