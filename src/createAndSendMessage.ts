@@ -48,7 +48,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
             limit: 100,
         }).all();
 
-        // Retrieve all components, removing any blanks.
+        // Retrieve all components, removing any blanks
         components = _.compact([
             getAccountAge(user, settings),
             getAccountKarma(user, settings),
@@ -96,7 +96,7 @@ export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | 
     try {
         const conversationResponse = await context.reddit.modMail.getConversation({ conversationId });
 
-        // Sanity checks to ensure that conversation is in the right state.
+        // Sanity checks to ensure that conversation is in the right state
         if (conversationResponse.conversation?.participant?.name) {
             const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
@@ -104,7 +104,6 @@ export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | 
             try {
                 user = await context.reddit.getUserByUsername(conversationResponse.conversation.participant.name);
             } catch {
-                //
             }
 
             if (!user) {
@@ -117,7 +116,7 @@ export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | 
             }
         }
     } catch (error) {
-        // If one fails, log to console and continue.
+        // If one fails, log to console and continue
         console.log(`Error sending modmail summary for conversation ${conversationId}!`);
         console.log(error);
     }

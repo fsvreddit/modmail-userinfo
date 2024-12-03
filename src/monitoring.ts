@@ -69,7 +69,7 @@ export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
         return;
     }
 
-    // If we've got here, we encountered an error retrieving modmails.
+    // If we get here, we encountered an error retrieving modmails
     const existingState = await context.redis.get(redisKey);
     if (existingState) {
         const downSince = new Date(parseInt(existingState));
@@ -77,7 +77,7 @@ export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
         return;
     }
 
-    // App is newly down. Send a Discord notification if webhook is defined.
+    // App is newly down. Send a Discord notification if webhook is defined
     const messageToSend = `Modmail Quick User Summary appears to be down! Latest error message:\n\n${errorMessage}`;
     await sendMessageToWebhook(webhookUrl, messageToSend);
 }
