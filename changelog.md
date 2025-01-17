@@ -1,5 +1,17 @@
 # Change Log
 
+### v1.6.5
+
+* Fixed an issue that prevented subreddit comment counts from showing any subreddits other than the one it is installed in
+
+### v1.6.2
+
+* Fix issue which led to undercounting comments in the "Recent comment count" output
+
+### v1.6.1
+
+* Fix misleading text on settings page
+
 ### v1.6.0
 
 * Output is now fully configurable. All options can be disabled or enabled individually, allowing you to pick and choose what you find useful and hide what you ignore

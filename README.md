@@ -38,6 +38,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.6.5
+
+* Fixed an issue that prevented subreddit comment counts from showing any subreddits other than the one it is installed in
+
 ### v1.6.2
 
 * Fix issue which led to undercounting comments in the "Recent comment count" output

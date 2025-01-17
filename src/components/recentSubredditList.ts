@@ -55,7 +55,7 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
     }
 
     // Check Redis cache for subreddit visibility.
-    const redisKey = `subredditVisibility-${subredditName}`;
+    const redisKey = `subredditVisibilityCheck-${subredditName}`;
     const cachedValue = await context.redis.get(redisKey);
     if (cachedValue) {
         return cachedValue === "true";
@@ -64,7 +64,8 @@ async function getSubredditVisibility (context: TriggerContext, subredditName: s
     let isVisible = true;
     try {
         const subreddit = await context.reddit.getSubredditInfoByName(subredditName);
-        isVisible = subreddit.type === "public" || subreddit.type === "restricted" || subreddit.type === "archived";
+        const subredditType = subreddit.type?.toLowerCase();
+        isVisible = subredditType === "public" || subredditType === "restricted" || subredditType === "archived";
 
         // Cache the value for a week, unlikely to change that often.
         await context.redis.set(redisKey, JSON.stringify(isVisible), { expiration: addDays(new Date(), 7) });
