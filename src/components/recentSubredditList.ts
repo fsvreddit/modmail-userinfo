@@ -1,6 +1,5 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { addDays } from "date-fns";
-import { getSubredditName } from "../utility.js";
 import { numericFieldBetween } from "../settingsHelpers.js";
 import _ from "lodash";
 
@@ -104,7 +103,7 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     // privacy somewhat so limit output to what a normal user would see.
     const filteredSubCommentCounts: SubCommentCount[] = [];
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
     if (numberOfSubsToReportOn > 0) {
         for (const subCommentItem of subCommentCounts.sort((a, b) => b.commentCount - a.commentCount)) {
             // Deliberately doing call within loop so that we can limit the number of calls made.

@@ -1,6 +1,5 @@
 import { SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
-import { getSubredditName } from "../utility.js";
 import { IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 import markdownEscape from "markdown-escape";
 
@@ -72,7 +71,7 @@ export async function getRecentPosts (username: string, settings: SettingsValues
         return;
     }
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
 
     let result = `**Recent ${includeRecentPosts === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
     result += recentPosts

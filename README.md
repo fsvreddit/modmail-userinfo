@@ -38,6 +38,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.6.6
+
+* Upgrade dependencies and fix an issue preventing the app developer from receiving downtime alerts correctly
+
 ### v1.6.5
 
 * Fixed an issue that prevented subreddit comment counts from showing any subreddits other than the one it is installed in

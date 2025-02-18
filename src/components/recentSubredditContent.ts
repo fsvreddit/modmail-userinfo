@@ -1,5 +1,4 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
-import { getSubredditName } from "../utility.js";
 import { differenceInDays, subDays } from "date-fns";
 import pluralize from "pluralize";
 
@@ -70,7 +69,7 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
         actualNumberOfDays = oldestComment.createdAt < subDays(new Date(), numberOfDays) ? numberOfDays : differenceInDays(new Date(), oldestComment.createdAt);
     }
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
     let result = `**Recent comments on /r/${subredditName}**: ${subredditComments.length}`;
 
     if (actualNumberOfDays && actualNumberOfDays < numberOfDays) {
@@ -108,7 +107,7 @@ export async function getRecentSubredditPostCount (username: string, settings: S
         actualNumberOfDays = oldestPost.createdAt < subDays(new Date(), numberOfDays) ? numberOfDays : differenceInDays(new Date(), oldestPost.createdAt);
     }
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
     let result = `**Recent posts on /r/${subredditName}**: ${subredditPosts.length}`;
 
     if (actualNumberOfDays && actualNumberOfDays < numberOfDays) {
