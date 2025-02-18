@@ -1,7 +1,6 @@
 import { JobContext, SettingsFormField, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
-import { getSubredditName } from "./utility.js";
 
 export enum MonitoringSetting {
     MonitoringSubreddit = "monitoringSubreddit",
@@ -27,7 +26,7 @@ export const settingsForMonitoring: SettingsFormField[] = [
 export const MONITORING_JOB_NAME = "checkIfAppIsWorking";
 
 export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
     const settings = await context.settings.getAll();
 
     const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
@@ -80,6 +79,8 @@ export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
     // App is newly down. Send a Discord notification if webhook is defined
     const messageToSend = `Modmail Quick User Summary appears to be down! Latest error message:\n\n${errorMessage}`;
     await sendMessageToWebhook(webhookUrl, messageToSend);
+
+    await context.redis.set(redisKey, new Date().getTime().toString());
 }
 
 async function sendMessageToWebhook (webhookUrl: string, message: string) {
@@ -114,13 +115,13 @@ export async function scheduleJobs (context: TriggerContext | JobContext, conver
     }
 
     // Check if we need to add a scheduled monitoring job
-    const currentSubreddit = await context.reddit.getCurrentSubreddit();
+    const currentSubreddit = await context.reddit.getCurrentSubredditName();
 
     const settings = await context.settings.getAll();
 
     const monitoringSubreddit = settings[MonitoringSetting.MonitoringSubreddit] as string | undefined;
-    if (currentSubreddit.name.toLowerCase() !== monitoringSubreddit) {
-        console.log(`Scheduler: /r/${currentSubreddit.name} is not a permitted monitoring subreddit.`);
+    if (currentSubreddit.toLowerCase() !== monitoringSubreddit) {
+        console.log(`Scheduler: /r/${currentSubreddit} is not a permitted monitoring subreddit.`);
         return;
     }
 

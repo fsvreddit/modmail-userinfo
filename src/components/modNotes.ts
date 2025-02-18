@@ -1,7 +1,7 @@
 import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, UserNoteLabel } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
 import { ToolboxClient, Usernote } from "toolbox-devvit";
-import { getPostOrCommentFromRedditId, getSubredditName } from "../utility.js";
+import { getPostOrCommentFromRedditId } from "../utility.js";
 import _ from "lodash";
 import markdownEscape from "markdown-escape";
 
@@ -60,7 +60,7 @@ function formatNote (note: CombinedUserNote, locale: string, includeSource: bool
 export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
     const combinedNotesRetriever: Promise<CombinedUserNote[]>[] = [];
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
 
     const shouldIncludeNativeUsernotes = settings[ModNotesSetting.IncludeNativeNotes] as boolean | undefined ?? false;
     if (shouldIncludeNativeUsernotes) {

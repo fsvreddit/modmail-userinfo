@@ -1,6 +1,5 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
-import { getSubredditName } from "../utility.js";
 import { IncludeRecentContentOption, numericFieldBetween, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 
 enum RecentCommentsSetting {
@@ -54,7 +53,7 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
         return;
     }
 
-    const subredditName = await getSubredditName(context);
+    const subredditName = await context.reddit.getCurrentSubredditName();
     let result: string;
 
     if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved) {

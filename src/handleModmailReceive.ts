@@ -4,7 +4,7 @@ import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
 import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
-import { getSubredditName, userIsMod } from "./utility.js";
+import { userIsMod } from "./utility.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (!event.messageAuthor || event.messageAuthor.name === context.appName) {
@@ -49,8 +49,8 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         // Special handling: Schedule jobs if !monitor command is run, and this is the monitoring subreddit
         if (firstMessage.body?.includes("!monitor")) {
             const monitoringSubreddit = await context.settings.get<string>(MonitoringSetting.MonitoringSubreddit);
-            const subreddit = await context.reddit.getCurrentSubreddit();
-            if (subreddit.name.toLowerCase() === monitoringSubreddit?.toLowerCase()) {
+            const subredditName = await context.reddit.getCurrentSubredditName();
+            if (subredditName.toLowerCase() === monitoringSubreddit?.toLowerCase()) {
                 await scheduleJobs(context, event.conversationId);
             }
         }
@@ -83,7 +83,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         subredditName = event.conversationSubreddit.name;
     } else {
         // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit
-        subredditName = await getSubredditName(context);
+        subredditName = await context.reddit.getCurrentSubredditName();
     }
 
     const settings = await context.settings.getAll();
