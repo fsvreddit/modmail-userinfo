@@ -63,7 +63,3 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 * Add new option to show the number of recent posts or comments in your subreddit within a configurable timeframe
 * Add new option to include a line if the user is shadowbanned (no other information can be included if that is the case)
 * Lots of internal code improvements
-
-### v1.5.1
-
-* Add option to include user's flair in summary
