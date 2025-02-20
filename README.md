@@ -1,6 +1,4 @@
-# Modmail Quick User Info (modmail-userinfo)
-
-**When a user sends a modmail to a subreddit, this app replies to the modmail (visible to mods only) with a summary about the user including:**
+When a user sends a modmail to a subreddit, this app replies to the modmail (visible to mods only) with a summary about the user including:
 
 * Account age
 * Account sitewide karma
