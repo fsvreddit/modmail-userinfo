@@ -1,5 +1,6 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { differenceInDays, subDays } from "date-fns";
+import json2md from "json2md";
 import pluralize from "pluralize";
 
 enum RecentSubredditCommentSetting {
@@ -34,7 +35,7 @@ export const settingsForRecentSubredditComments: SettingsFormField = {
     ],
 };
 
-export async function getRecentSubredditCommentCount (userComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getRecentSubredditCommentCount (userComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject | undefined> {
     if (!settings[RecentSubredditCommentSetting.EnableCommentCount]) {
         return;
     }
@@ -78,10 +79,10 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
         result += ` in last ${numberOfDays} ${pluralize("day", numberOfDays)}`;
     }
 
-    return result;
+    return { p: result };
 }
 
-export async function getRecentSubredditPostCount (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getRecentSubredditPostCount (username: string, settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject | undefined> {
     if (!settings[RecentSubredditCommentSetting.EnableCommentCount]) {
         return;
     }
@@ -116,5 +117,5 @@ export async function getRecentSubredditPostCount (username: string, settings: S
         result += ` in last ${numberOfDays} ${pluralize("day", numberOfDays)}`;
     }
 
-    return result;
+    return { p: result };
 }

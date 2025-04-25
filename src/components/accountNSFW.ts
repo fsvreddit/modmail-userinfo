@@ -1,4 +1,5 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
+import json2md from "json2md";
 
 enum AccountNSFWSetting {
     EnableOption = "enableNSFWOutput",
@@ -11,12 +12,12 @@ export const settingsForAccountNSFW: SettingsFormField = {
     defaultValue: true,
 };
 
-export function getAccountNSFW (user: User, settings: SettingsValues): string | undefined {
+export function getAccountNSFW (user: User, settings: SettingsValues): json2md.DataObject | undefined {
     if (!settings[AccountNSFWSetting.EnableOption]) {
         return;
     }
 
     if (user.nsfw) {
-        return "**NSFW account**: Yes";
+        return { p: "**NSFW account**: Yes" };
     }
 }

@@ -8,9 +8,10 @@ import { getAccountAge } from "./components/accountAge.js";
 import { getAccountKarma } from "./components/accountKarma.js";
 import { getAccountNSFW } from "./components/accountNSFW.js";
 import { getAccountFlair } from "./components/accountFlair.js";
-import _ from "lodash";
+import { compact } from "lodash";
 import { getRecentSubredditCommentCount, getRecentSubredditPostCount } from "./components/recentSubredditContent.js";
 import { getUserShadowbanText } from "./components/shadowbanInfo.js";
+import json2md from "json2md";
 
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
@@ -41,7 +42,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
         modmailMessage = textForStartOfSummary.replace("{{username}}", username) + "\n\n";
     }
 
-    let components: string[];
+    let components: json2md.DataObject[];
     if (user) {
         const userComments = await user.getComments({
             sort: "new",
@@ -49,22 +50,25 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
         }).all();
 
         // Retrieve all components, removing any blanks
-        components = _.compact([
+        const allComponents: (json2md.DataObject | json2md.DataObject[] | undefined)[] = [
             getAccountAge(user, settings),
             getAccountKarma(user, settings),
             getAccountNSFW(user, settings),
-            ...await Promise.all([
-                getAccountFlair(user, settings, context),
-                getRecentSubreddits(userComments, settings, context),
-                getRecentSubredditCommentCount(userComments, settings, context),
-                getRecentSubredditPostCount(username, settings, context),
-                getRecentComments(userComments, settings, context),
-                getRecentPosts(user.username, settings, context),
-                getModNotes(user.username, settings, context),
-            ]),
-        ]);
+        ];
+
+        allComponents.push(await Promise.all([
+            getAccountFlair(user, settings, context),
+            getRecentSubreddits(userComments, settings, context),
+            getRecentSubredditCommentCount(userComments, settings, context),
+            getRecentSubredditPostCount(username, settings, context),
+            getRecentComments(userComments, settings, context),
+            getRecentPosts(user.username, settings, context),
+            getModNotes(user.username, settings, context),
+        ]));
+
+        components = compact(allComponents).flat();
     } else {
-        components = _.compact([
+        components = compact([
             getUserShadowbanText(username, user, settings),
         ]);
     }
@@ -75,7 +79,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
         return;
     }
 
-    modmailMessage += components.join("\n\n");
+    modmailMessage += json2md(components);
 
     return modmailMessage;
 }

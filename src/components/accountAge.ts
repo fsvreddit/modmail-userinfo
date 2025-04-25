@@ -1,6 +1,7 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
 import { differenceInDays, differenceInHours, Duration, formatDistanceToNow, formatDuration, intervalToDuration } from "date-fns";
 import { selectFieldHasOptionChosen } from "../settingsHelpers.js";
+import json2md from "json2md";
 
 enum AccountAgeSetting {
     EnableOption = "enableAccountAge",
@@ -37,7 +38,7 @@ export const settingsForAccountAge: SettingsFormField = {
     ],
 };
 
-export function getAccountAge (user: User, settings: SettingsValues): string | undefined {
+export function getAccountAge (user: User, settings: SettingsValues): json2md.DataObject | undefined {
     if (!settings[AccountAgeSetting.EnableOption]) {
         return;
     }
@@ -58,5 +59,5 @@ export function getAccountAge (user: User, settings: SettingsValues): string | u
         accountAge = formatDuration(duration, { format: units });
     }
 
-    return `**Age**: ${accountAge}`;
+    return { p: `**Age**: ${accountAge}` };
 }

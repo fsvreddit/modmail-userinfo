@@ -2,6 +2,7 @@ import { SettingsFormField, SettingsValues, TriggerContext } from "@devvit/publi
 import { GeneralSetting } from "../settings.js";
 import { IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 import markdownEscape from "markdown-escape";
+import json2md from "json2md";
 
 enum RecentPostsSetting {
     IncludeRecentPosts = "includeRecentPosts",
@@ -41,7 +42,7 @@ export const settingsForRecentPosts: SettingsFormField = {
     ],
 };
 
-export async function getRecentPosts (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getRecentPosts (username: string, settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject[] | undefined> {
     const [includeRecentPosts] = settings[RecentPostsSetting.IncludeRecentPosts] as IncludeRecentContentOption[] | undefined ?? [IncludeRecentContentOption.None];
     const numberOfPostsToInclude = settings[RecentPostsSetting.NumberOfPostsToInclude] as number | undefined ?? 3;
 
@@ -73,10 +74,10 @@ export async function getRecentPosts (username: string, settings: SettingsValues
 
     const subredditName = await context.reddit.getCurrentSubredditName();
 
-    let result = `**Recent ${includeRecentPosts === IncludeRecentContentOption.Removed ? "removed " : ""} posts on ${subredditName}**\n\n`;
-    result += recentPosts
-        .map(post => `* [${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})`)
-        .join("\n");
+    const result: json2md.DataObject[] = [
+        { p: `**Recent ${includeRecentPosts === IncludeRecentContentOption.Removed ? "removed " : ""} posts on /r/${subredditName}**` },
+        { ul: recentPosts.map(post => `[${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})`) },
+    ];
 
     return result;
 }
