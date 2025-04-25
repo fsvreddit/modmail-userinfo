@@ -12,6 +12,7 @@ import { compact } from "lodash";
 import { getRecentSubredditCommentCount, getRecentSubredditPostCount } from "./components/recentSubredditContent.js";
 import { getUserShadowbanText } from "./components/shadowbanInfo.js";
 import json2md from "json2md";
+import { getUserSocialLinks } from "./components/socialLinks.js";
 
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
@@ -56,8 +57,9 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
             getAccountNSFW(user, settings),
         ];
 
-        allComponents.push(await Promise.all([
+        allComponents.push(...await Promise.all([
             getAccountFlair(user, settings, context),
+            getUserSocialLinks(user, settings),
             getRecentSubreddits(userComments, settings, context),
             getRecentSubredditCommentCount(userComments, settings, context),
             getRecentSubredditPostCount(username, settings, context),

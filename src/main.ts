@@ -13,6 +13,7 @@ import { settingsForAccountNSFW } from "./components/accountNSFW.js";
 import { settingsForRecentSubredditComments } from "./components/recentSubredditContent.js";
 import { onModmailReceiveEvent } from "./handleModmailReceive.js";
 import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
+import { settingsForSocialLinks } from "./components/socialLinks.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
@@ -23,6 +24,7 @@ Devvit.addSettings([
     settingsForRecentSubredditComments,
     settingsForRecentComments,
     settingsForRecentPosts,
+    settingsForSocialLinks,
     settingsForModNotes,
     settingsForShadowbanCheck,
     generalSettings,
