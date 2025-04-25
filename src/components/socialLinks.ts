@@ -13,18 +13,12 @@ enum SocialLinksDisplayOption {
 }
 
 export const settingsForSocialLinks: SettingsFormField = {
-    type: "group",
-    label: "Social Links",
-    fields: [
-        {
-            type: "select",
-            name: SocialLinksSetting.IncludeSocialLinks,
-            label: "Include social links in summary",
-            options: Object.values(SocialLinksDisplayOption).map(option => ({ label: option, value: option })),
-            defaultValue: [SocialLinksDisplayOption.None],
-            multiSelect: false,
-        },
-    ],
+    type: "select",
+    name: SocialLinksSetting.IncludeSocialLinks,
+    label: "Include social links in summary",
+    options: Object.values(SocialLinksDisplayOption).map(option => ({ label: option, value: option })),
+    defaultValue: [SocialLinksDisplayOption.None],
+    multiSelect: false,
 };
 
 function domainFromUrl (url: string): string | undefined {

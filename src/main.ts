@@ -14,17 +14,19 @@ import { settingsForRecentSubredditComments } from "./components/recentSubreddit
 import { onModmailReceiveEvent } from "./handleModmailReceive.js";
 import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 import { settingsForSocialLinks } from "./components/socialLinks.js";
+import { settingsForBioText } from "./components/accountBioText.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
     settingsForAccountKarma,
     settingsForAccountNSFW,
     settingsForUserFlair,
+    settingsForBioText,
+    settingsForSocialLinks,
     settingsForRecentSubreddits,
     settingsForRecentSubredditComments,
     settingsForRecentComments,
     settingsForRecentPosts,
-    settingsForSocialLinks,
     settingsForModNotes,
     settingsForShadowbanCheck,
     generalSettings,

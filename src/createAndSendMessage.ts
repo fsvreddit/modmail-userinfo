@@ -13,6 +13,7 @@ import { getRecentSubredditCommentCount, getRecentSubredditPostCount } from "./c
 import { getUserShadowbanText } from "./components/shadowbanInfo.js";
 import json2md from "json2md";
 import { getUserSocialLinks } from "./components/socialLinks.js";
+import { getUserBioText } from "./components/accountBioText.js";
 
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
@@ -59,6 +60,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
 
         allComponents.push(...await Promise.all([
             getAccountFlair(user, settings, context),
+            getUserBioText(user, settings, context),
             getUserSocialLinks(user, settings),
             getRecentSubreddits(userComments, settings, context),
             getRecentSubredditCommentCount(userComments, settings, context),
