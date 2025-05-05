@@ -1,6 +1,7 @@
 import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
 import { IncludeRecentContentOption, numericFieldBetween, selectFieldHasOptionChosen } from "../settingsHelpers.js";
+import json2md from "json2md";
 
 enum RecentCommentsSetting {
     IncludeRecentComments = "includeRecentComments",
@@ -34,7 +35,7 @@ export const settingsForRecentComments: SettingsFormField = {
     ],
 };
 
-export async function getRecentComments (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getRecentComments (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject[] | undefined> {
     const [includeRecentComments] = settings[RecentCommentsSetting.IncludeRecentComments] as IncludeRecentContentOption[] | undefined ?? [IncludeRecentContentOption.None];
     const numberOfRemovedCommentsToInclude = settings[RecentCommentsSetting.NumberOfCommentsToInclude] as number | undefined ?? 3;
 
@@ -54,25 +55,26 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
     }
 
     const subredditName = await context.reddit.getCurrentSubredditName();
-    let result: string;
+    const result: json2md.DataObject[] = [];
 
     if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved) {
-        result = `**Recent comments on ${subredditName}**:\n\n`;
+        result.push({ p: `**Recent comments on ${subredditName}**:` });
     } else {
-        result = `**Recently removed comments on ${subredditName}**:\n\n`;
+        result.push({ p: `**Recently removed comments on ${subredditName}**:` });
     }
 
     for (const comment of filteredComments) {
-        result += `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink})`;
+        let line = `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink})`;
         if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved && comment.removed) {
-            result += " (removed)";
+            line += " (removed):";
+        } else {
+            line += ":";
         }
-        result += ":\n\n";
-        result += `> ${comment.body.split("\n").join("\n> ")}`;
-        result += "\n\n";
+        result.push({ p: line });
+        result.push({ blockquote: comment.body });
     }
 
-    result += "---";
+    result.push({ hr: {} });
 
     return result;
 }

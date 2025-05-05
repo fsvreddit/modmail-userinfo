@@ -4,6 +4,7 @@ import { ToolboxClient, Usernote } from "toolbox-devvit";
 import { getPostOrCommentFromRedditId } from "../utility.js";
 import _ from "lodash";
 import markdownEscape from "markdown-escape";
+import json2md from "json2md";
 
 enum ModNotesSetting {
     IncludeNativeNotes = "includeNativeNotes",
@@ -57,7 +58,7 @@ function formatNote (note: CombinedUserNote, locale: string, includeSource: bool
     return `* ${modnote}`;
 }
 
-export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject[] | undefined> {
     const combinedNotesRetriever: Promise<CombinedUserNote[]>[] = [];
 
     const subredditName = await context.reddit.getCurrentSubredditName();
@@ -83,10 +84,11 @@ export async function getModNotes (username: string, settings: SettingsValues, c
 
     allUserNotes.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    let result = shouldIncludeNativeUsernotes ? "**Mod notes**:\n\n" : "**User notes**:\n\n";
-
     const includeSource = shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes;
-    result += allUserNotes.map(note => formatNote(note, locale, includeSource)).join("\n");
+    const result: json2md.DataObject[] = [
+        { p: shouldIncludeNativeUsernotes ? "**Mod notes**:" : "**User notes**:" },
+        { ul: allUserNotes.map(note => formatNote(note, locale, includeSource)) },
+    ];
 
     return result;
 }

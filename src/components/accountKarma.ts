@@ -1,4 +1,5 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
+import json2md from "json2md";
 
 enum AccountKarmaSetting {
     EnableOption = "enableAccountKarma",
@@ -11,10 +12,10 @@ export const settingsForAccountKarma: SettingsFormField = {
     defaultValue: true,
 };
 
-export function getAccountKarma (user: User, settings: SettingsValues): string | undefined {
+export function getAccountKarma (user: User, settings: SettingsValues): json2md.DataObject | undefined {
     if (!settings[AccountKarmaSetting.EnableOption]) {
         return;
     }
 
-    return `**Sitewide karma**: Post ${user.linkKarma.toLocaleString()}, Comment ${user.commentKarma.toLocaleString()}`;
+    return { p: `**Sitewide karma**: Post ${user.linkKarma.toLocaleString()}, Comment ${user.commentKarma.toLocaleString()}` };
 }

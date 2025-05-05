@@ -1,4 +1,5 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
+import json2md from "json2md";
 
 enum ShadowbanCheckSetting {
     EnableOption = "enableShadowbanOutput",
@@ -11,7 +12,7 @@ export const settingsForShadowbanCheck: SettingsFormField = {
     defaultValue: true,
 };
 
-export function getUserShadowbanText (username: string, user: User | undefined, settings: SettingsValues): string | undefined {
+export function getUserShadowbanText (username: string, user: User | undefined, settings: SettingsValues): json2md.DataObject | undefined {
     if (!settings[ShadowbanCheckSetting.EnableOption]) {
         return;
     }
@@ -21,5 +22,5 @@ export function getUserShadowbanText (username: string, user: User | undefined, 
         return;
     }
 
-    return `User ${username} appears to be shadowbanned or suspended.`;
+    return { p: `User ${username} appears to be shadowbanned or suspended.` };
 }

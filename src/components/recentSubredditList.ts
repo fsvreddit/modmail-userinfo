@@ -2,6 +2,7 @@ import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@dev
 import { addDays } from "date-fns";
 import { numericFieldBetween } from "../settingsHelpers.js";
 import _ from "lodash";
+import json2md from "json2md";
 
 enum RecentSubredditSetting {
     NumberOfSubsInSummary = "numberOfSubsToIncludeInSummary",
@@ -82,7 +83,7 @@ interface SubCommentCount {
     commentCount: number;
 }
 
-export async function getRecentSubreddits (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getRecentSubreddits (recentComments: Comment[], settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject[] | undefined> {
     // Build up a list of subreddits and the count of comments in those subreddits
 
     const numberOfSubsToReportOn = settings[RecentSubredditSetting.NumberOfSubsInSummary] as number | undefined ?? 10;
@@ -124,13 +125,13 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     }
 
     const [subHistoryDisplayStyle] = settings[RecentSubredditSetting.SubHistoryDisplayStyle] as SubHistoryDisplayStyleOption[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];
-    let result = "**Recent comments across Reddit**: ";
+    const result: json2md.DataObject[] = [];
 
     if (subHistoryDisplayStyle === SubHistoryDisplayStyleOption.Bullet) {
-        result += "\n\n";
-        result += filteredSubCommentCounts.map(item => `* /r/${item.subName}: ${item.commentCount}`).join("\n");
+        result.push({ p: "**Recent comments across Reddit**" });
+        result.push({ ul: filteredSubCommentCounts.map(item => `/r/${item.subName}: ${item.commentCount}`) });
     } else {
-        result += filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ");
+        result.push({ p: `**Recent comments across Reddit**: ${filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ")}` });
     }
 
     return result;

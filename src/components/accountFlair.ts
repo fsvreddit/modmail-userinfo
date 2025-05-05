@@ -1,4 +1,5 @@
 import { SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
+import json2md from "json2md";
 import markdownEscape from "markdown-escape";
 
 enum AccountFlairSetting {
@@ -12,7 +13,7 @@ export const settingsForUserFlair: SettingsFormField = {
     defaultValue: false,
 };
 
-export async function getAccountFlair (user: User, settings: SettingsValues, context: TriggerContext): Promise<string | undefined> {
+export async function getAccountFlair (user: User, settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject | undefined> {
     if (!settings[AccountFlairSetting.IncludeUserFlair]) {
         return;
     }
@@ -20,6 +21,6 @@ export async function getAccountFlair (user: User, settings: SettingsValues, con
     const subredditName = await context.reddit.getCurrentSubredditName();
     const userFlair = await user.getUserFlairBySubreddit(subredditName);
     if (userFlair?.flairText) {
-        return `**User Flair**: ${markdownEscape(userFlair.flairText)}`;
+        return { p: `**User Flair**: ${markdownEscape(userFlair.flairText)}` };
     }
 }

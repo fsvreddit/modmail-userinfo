@@ -36,6 +36,11 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.6.7
+
+* Add option to include a user's bio text in output
+* Add option to include social links in output
+
 ### v1.6.6
 
 * Upgrade dependencies and fix an issue preventing the app developer from receiving downtime alerts correctly

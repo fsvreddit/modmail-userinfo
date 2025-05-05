@@ -105,11 +105,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     // Check if user is a mod, and if app is configured to send summaries for mods
     if (!settings[GeneralSetting.CreateSummaryForModerators]) {
-        let userIsModerator = conversationResponse.conversation.participant.isMod;
-        if (!userIsModerator) {
-            // They may actually be a mod, just not with modmail permissions
-            userIsModerator = await userIsMod(username, context);
-        }
+        const userIsModerator = conversationResponse.conversation.participant.isMod ?? await userIsMod(username, context);
         if (userIsModerator) {
             console.log(`${username} is a moderator of /r/${subredditName}, skipping`);
             return;
