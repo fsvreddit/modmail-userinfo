@@ -36,7 +36,7 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
-### Next
+### v1.6.7
 
 * Add option to include a user's bio text in output
 * Add option to include social links in output
