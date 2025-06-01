@@ -36,6 +36,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+## v1.6.8
+
+* Fix formatting of mod notes (removed extra * character)
+
 ### v1.6.7
 
 * Add option to include a user's bio text in output

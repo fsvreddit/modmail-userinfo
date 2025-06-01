@@ -55,7 +55,7 @@ function formatNote (note: CombinedUserNote, locale: string, includeSource: bool
         modnote += ` (${note.noteSource})`;
     }
 
-    return `* ${modnote}`;
+    return modnote;
 }
 
 export async function getModNotes (username: string, settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject[] | undefined> {
