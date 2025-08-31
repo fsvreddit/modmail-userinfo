@@ -2,6 +2,7 @@ import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@dev
 import { GeneralSetting } from "../settings.js";
 import { IncludeRecentContentOption, numericFieldBetween, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 import json2md from "json2md";
+import { formatHeader } from "./componentHelpers.js";
 
 enum RecentCommentsSetting {
     IncludeRecentComments = "includeRecentComments",
@@ -57,11 +58,13 @@ export async function getRecentComments (recentComments: Comment[], settings: Se
     const subredditName = await context.reddit.getCurrentSubredditName();
     const result: json2md.DataObject[] = [];
 
+    let header: string;
     if (includeRecentComments === IncludeRecentContentOption.VisibleAndRemoved) {
-        result.push({ p: `**Recent comments on ${subredditName}**:` });
+        header = `Recent comments on ${subredditName}`;
     } else {
-        result.push({ p: `**Recently removed comments on ${subredditName}**:` });
+        header = `Recently removed comments on ${subredditName}`;
     }
+    result.push({ p: `${formatHeader(header, settings)}:` });
 
     for (const comment of filteredComments) {
         let line = `[${comment.createdAt.toLocaleDateString(locale)}](${comment.permalink})`;

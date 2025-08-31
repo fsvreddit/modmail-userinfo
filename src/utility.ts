@@ -1,5 +1,5 @@
 import { Comment, Post, RedditAPIClient, TriggerContext } from "@devvit/public-api";
-import { isCommentId, isLinkId, isSubredditId, T1ID, T3ID, T5ID } from "@devvit/shared-types/tid.js";
+import { isCommentId, isLinkId, isSubredditId, T1ID, T3ID, T5ID } from "@devvit/public-api/types/tid.js";
 
 export async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId?: T1ID | T3ID | T5ID): Promise <Post | Comment | undefined> {
     if (!redditId || isSubredditId(redditId)) {

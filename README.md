@@ -36,7 +36,11 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
-## v1.6.8
+### v1.6.9
+
+* Allow headers to be formatted as desired - default is bold, but also supports italics and plain text.
+
+### v1.6.8
 
 * Fix formatting of mod notes (removed extra * character)
 
@@ -44,29 +48,3 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 
 * Add option to include a user's bio text in output
 * Add option to include social links in output
-
-### v1.6.6
-
-* Upgrade dependencies and fix an issue preventing the app developer from receiving downtime alerts correctly
-
-### v1.6.5
-
-* Fixed an issue that prevented subreddit comment counts from showing any subreddits other than the one it is installed in
-
-### v1.6.2
-
-* Fix issue which led to undercounting comments in the "Recent comment count" output
-
-### v1.6.1
-
-* Fix misleading text on settings page
-
-### v1.6.0
-
-* Output is now fully configurable. All options can be disabled or enabled individually, allowing you to pick and choose what you find useful and hide what you ignore
-* Native Reddit mod notes no longer fail if the user has any mod notes without a post or comment link
-* "Recent posts" header no longer shows if there are no posts to include
-* Add new option for account age output, to allow for exact account age. Granularity is day (if at least 2 days old), hour (if between 6 hours and 2 days old) and minute (if under 6 hours old). The existing approximate output (e.g. "about 1 year") is still available
-* Add new option to show the number of recent posts or comments in your subreddit within a configurable timeframe
-* Add new option to include a line if the user is shadowbanned (no other information can be included if that is the case)
-* Lots of internal code improvements

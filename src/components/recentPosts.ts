@@ -3,6 +3,7 @@ import { GeneralSetting } from "../settings.js";
 import { IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 import markdownEscape from "markdown-escape";
 import json2md from "json2md";
+import { formatHeader } from "./componentHelpers.js";
 
 enum RecentPostsSetting {
     IncludeRecentPosts = "includeRecentPosts",
@@ -74,8 +75,9 @@ export async function getRecentPosts (username: string, settings: SettingsValues
 
     const subredditName = await context.reddit.getCurrentSubredditName();
 
+    const header = `Recent ${includeRecentPosts === IncludeRecentContentOption.Removed ? "removed " : ""} posts on /r/${subredditName}`;
     const result: json2md.DataObject[] = [
-        { p: `**Recent ${includeRecentPosts === IncludeRecentContentOption.Removed ? "removed " : ""} posts on /r/${subredditName}**` },
+        { p: `${formatHeader(header, settings)}:` },
         { ul: recentPosts.map(post => `[${markdownEscape(post.title)}](${post.permalink}) (${post.createdAt.toLocaleDateString(locale)})`) },
     ];
 

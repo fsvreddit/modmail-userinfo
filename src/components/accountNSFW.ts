@@ -1,5 +1,6 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
 import json2md from "json2md";
+import { formatHeader } from "./componentHelpers.js";
 
 enum AccountNSFWSetting {
     EnableOption = "enableNSFWOutput",
@@ -18,6 +19,6 @@ export function getAccountNSFW (user: User, settings: SettingsValues): json2md.D
     }
 
     if (user.nsfw) {
-        return { p: "**NSFW account**: Yes" };
+        return { p: `${formatHeader("NSFW account", settings)}: Yes` };
     }
 }

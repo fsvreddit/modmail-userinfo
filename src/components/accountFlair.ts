@@ -1,6 +1,7 @@
 import { SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
 import json2md from "json2md";
 import markdownEscape from "markdown-escape";
+import { formatHeader } from "./componentHelpers.js";
 
 enum AccountFlairSetting {
     IncludeUserFlair = "includeUserFlair",
@@ -21,6 +22,6 @@ export async function getAccountFlair (user: User, settings: SettingsValues, con
     const subredditName = await context.reddit.getCurrentSubredditName();
     const userFlair = await user.getUserFlairBySubreddit(subredditName);
     if (userFlair?.flairText) {
-        return { p: `**User Flair**: ${markdownEscape(userFlair.flairText)}` };
+        return { p: `${formatHeader("User Flair", settings)}: ${markdownEscape(userFlair.flairText)}` };
     }
 }

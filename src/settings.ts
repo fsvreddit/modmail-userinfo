@@ -11,6 +11,13 @@ export enum GeneralSetting {
     CreateSummaryForAdmins = "createSummaryForAdmins",
     UsernamesToIgnore = "usernamesToIgnore",
     LocaleForDateOutput = "localeForDateOutput",
+    HeadingFormatting = "headingFormatting",
+}
+
+export enum HeadingFormatting {
+    Bold = "bold",
+    Italic = "italic",
+    NormalText = "underline",
 }
 
 export const generalSettings: SettingsFormField = {
@@ -80,6 +87,19 @@ export const generalSettings: SettingsFormField = {
                 { value: "ja-JP", label: "year/month/date" },
             ],
             defaultValue: ["en-US"],
+            multiSelect: false,
+            onValidate: selectFieldHasOptionChosen,
+        },
+        {
+            type: "select",
+            name: GeneralSetting.HeadingFormatting,
+            label: "Format for headings",
+            options: [
+                { value: HeadingFormatting.Bold, label: "Bold" },
+                { value: HeadingFormatting.Italic, label: "Italic" },
+                { value: HeadingFormatting.NormalText, label: "Normal text" },
+            ],
+            defaultValue: [HeadingFormatting.Bold],
             multiSelect: false,
             onValidate: selectFieldHasOptionChosen,
         },

@@ -3,6 +3,7 @@ import { addDays } from "date-fns";
 import { numericFieldBetween } from "../settingsHelpers.js";
 import _ from "lodash";
 import json2md from "json2md";
+import { formatHeader } from "./componentHelpers.js";
 
 enum RecentSubredditSetting {
     NumberOfSubsInSummary = "numberOfSubsToIncludeInSummary",
@@ -127,11 +128,12 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     const [subHistoryDisplayStyle] = settings[RecentSubredditSetting.SubHistoryDisplayStyle] as SubHistoryDisplayStyleOption[] | undefined ?? [SubHistoryDisplayStyleOption.SingleParagraph];
     const result: json2md.DataObject[] = [];
 
+    const header = formatHeader("Recent comments across Reddit", settings);
     if (subHistoryDisplayStyle === SubHistoryDisplayStyleOption.Bullet) {
-        result.push({ p: "**Recent comments across Reddit**" });
+        result.push({ p: header });
         result.push({ ul: filteredSubCommentCounts.map(item => `/r/${item.subName}: ${item.commentCount}`) });
     } else {
-        result.push({ p: `**Recent comments across Reddit**: ${filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ")}` });
+        result.push({ p: `${header}: ${filteredSubCommentCounts.map(item => `/r/${item.subName} (${item.commentCount})`).join(", ")}` });
     }
 
     return result;

@@ -1,6 +1,7 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
 import json2md from "json2md";
 import { compact, uniq } from "lodash";
+import { formatHeader } from "./componentHelpers.js";
 
 enum SocialLinksSetting {
     IncludeSocialLinks = "includeSocialLinks",
@@ -45,12 +46,13 @@ export async function getUserSocialLinks (user: User, settings: SettingsValues):
         return;
     }
 
+    const header = formatHeader("Social Links", settings);
     if (includeSocialLinks === SocialLinksDisplayOption.DomainsOnly) {
-        return [{ p: `**Social Links**: ${uniq(compact(socialLinks.map(link => domainFromUrl(link.outboundUrl)))).join(", ")}` }];
+        return [{ p: `${header}: ${uniq(compact(socialLinks.map(link => domainFromUrl(link.outboundUrl)))).join(", ")}` }];
     } else {
         // Detailed output
         return [
-            { p: `**Social Links**:` },
+            { p: `${header}:` },
             { ul: socialLinks.map(link => `${link.title}: ${link.outboundUrl}`) },
         ];
     }

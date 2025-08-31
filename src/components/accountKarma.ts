@@ -1,5 +1,6 @@
 import { SettingsFormField, SettingsValues, User } from "@devvit/public-api";
 import json2md from "json2md";
+import { formatHeader } from "./componentHelpers.js";
 
 enum AccountKarmaSetting {
     EnableOption = "enableAccountKarma",
@@ -17,5 +18,5 @@ export function getAccountKarma (user: User, settings: SettingsValues): json2md.
         return;
     }
 
-    return { p: `**Sitewide karma**: Post ${user.linkKarma.toLocaleString()}, Comment ${user.commentKarma.toLocaleString()}` };
+    return { p: `${formatHeader("Sitewide karma", settings)}: Post ${user.linkKarma.toLocaleString()}, Comment ${user.commentKarma.toLocaleString()}` };
 }

@@ -1,5 +1,18 @@
 # Change Log
 
+### v1.6.9
+
+* Allow headers to be formatted as desired - default is bold, but also supports italics and plain text.
+
+### v1.6.8
+
+* Fix formatting of mod notes (removed extra * character)
+
+### v1.6.7
+
+* Add option to include a user's bio text in output
+* Add option to include social links in output
+
 ### v1.6.6
 
 * Upgrade dependencies and fix an issue preventing the app developer from receiving downtime alerts correctly

@@ -2,6 +2,7 @@ import { Comment, SettingsFormField, SettingsValues, TriggerContext } from "@dev
 import { differenceInDays, subDays } from "date-fns";
 import json2md from "json2md";
 import pluralize from "pluralize";
+import { formatHeader } from "./componentHelpers.js";
 
 enum RecentSubredditCommentSetting {
     EnableCommentCount = "enableRecentSubredditComments",
@@ -71,7 +72,8 @@ export async function getRecentSubredditCommentCount (userComments: Comment[], s
     }
 
     const subredditName = await context.reddit.getCurrentSubredditName();
-    let result = `**Recent comments on /r/${subredditName}**: ${subredditComments.length}`;
+    const header = `Recent comments on /r/${subredditName}`;
+    let result = `${formatHeader(header, settings)}: ${subredditComments.length}`;
 
     if (actualNumberOfDays && actualNumberOfDays < numberOfDays) {
         result += ` in last ${actualNumberOfDays} ${pluralize("day", actualNumberOfDays)} (unable to look back further)`;
@@ -109,7 +111,8 @@ export async function getRecentSubredditPostCount (username: string, settings: S
     }
 
     const subredditName = await context.reddit.getCurrentSubredditName();
-    let result = `**Recent posts on /r/${subredditName}**: ${subredditPosts.length}`;
+    const header = `Recent posts on /r/${subredditName}`;
+    let result = `${formatHeader(header, settings)}: ${subredditPosts.length}`;
 
     if (actualNumberOfDays && actualNumberOfDays < numberOfDays) {
         result += ` (recent history only covers ${actualNumberOfDays} ${pluralize("day", actualNumberOfDays)})`;

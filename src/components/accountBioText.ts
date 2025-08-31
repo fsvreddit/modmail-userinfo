@@ -1,6 +1,7 @@
 import { SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
 import json2md from "json2md";
 import { getUserExtended } from "../extendedDevvit.js";
+import { formatHeader } from "./componentHelpers.js";
 
 enum BioTextSetting {
     IncludeBioText = "includeBioText",
@@ -26,10 +27,10 @@ export async function getUserBioText (user: User, settings: SettingsValues, cont
 
     if (bioText.includes("\n\n")) {
         return [
-            { p: `**Bio Text**:` },
+            { p: `${formatHeader("Bio Text", settings)}:` },
             { blockquote: bioText },
         ];
     } else {
-        return [{ p: `**Bio Text**: ${bioText}` }];
+        return [{ p: `${formatHeader("Bio Text", settings)}: ${bioText}` }];
     }
 }

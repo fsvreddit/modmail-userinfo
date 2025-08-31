@@ -5,6 +5,7 @@ import { getPostOrCommentFromRedditId } from "../utility.js";
 import _ from "lodash";
 import markdownEscape from "markdown-escape";
 import json2md from "json2md";
+import { formatHeader } from "./componentHelpers.js";
 
 enum ModNotesSetting {
     IncludeNativeNotes = "includeNativeNotes",
@@ -86,7 +87,7 @@ export async function getModNotes (username: string, settings: SettingsValues, c
 
     const includeSource = shouldIncludeNativeUsernotes && shouldIncludeToolboxUsernotes;
     const result: json2md.DataObject[] = [
-        { p: shouldIncludeNativeUsernotes ? "**Mod notes**:" : "**User notes**:" },
+        { p: shouldIncludeNativeUsernotes ? `${formatHeader("Mod notes", settings)}:` : `${formatHeader("User notes", settings)}:` },
         { ul: allUserNotes.map(note => formatNote(note, locale, includeSource)) },
     ];
 
