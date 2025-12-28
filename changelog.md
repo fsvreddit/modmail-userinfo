@@ -1,5 +1,9 @@
 # Change Log
 
+### v1.7.0
+
+* Add subreddit-specific karma to output. This is enabled by default but can be turned off if you wish.
+
 ### v1.6.9
 
 * Allow headers to be formatted as desired - default is bold, but also supports italics and plain text.

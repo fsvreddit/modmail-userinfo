@@ -36,6 +36,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.7.0 (coming soon!)
+
+* Add subreddit-specific karma to output. This is enabled by default but can be turned off if you wish.
+
 ### v1.6.9
 
 * Allow headers to be formatted as desired - default is bold, but also supports italics and plain text.

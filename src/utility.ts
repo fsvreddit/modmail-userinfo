@@ -1,4 +1,4 @@
-import { Comment, Post, RedditAPIClient, TriggerContext } from "@devvit/public-api";
+import { Comment, Post, RedditAPIClient } from "@devvit/public-api";
 import { isCommentId, isLinkId, isSubredditId, T1ID, T3ID, T5ID } from "@devvit/public-api/types/tid.js";
 
 export async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, redditId?: T1ID | T3ID | T5ID): Promise <Post | Comment | undefined> {
@@ -9,10 +9,4 @@ export async function getPostOrCommentFromRedditId (reddit: RedditAPIClient, red
     } else if (isLinkId(redditId)) {
         return reddit.getPostById(redditId);
     }
-}
-
-export async function userIsMod (username: string, context: TriggerContext): Promise<boolean> {
-    const subredditName = await context.reddit.getCurrentSubredditName();
-    const modList = await context.reddit.getModerators({ subredditName, username }).all();
-    return (modList.length > 0);
 }
