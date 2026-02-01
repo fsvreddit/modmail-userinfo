@@ -4,10 +4,10 @@ import { addDays, addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
 import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
-import { userIsMod } from "./utility.js";
+import { isModerator } from "devvit-helpers";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
-    if (!event.messageAuthor || event.messageAuthor.name === context.appName) {
+    if (!event.messageAuthor || event.messageAuthor.name === context.appSlug) {
         return;
     }
 
@@ -105,7 +105,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     // Check if user is a mod, and if app is configured to send summaries for mods
     if (!settings[GeneralSetting.CreateSummaryForModerators]) {
-        const userIsModerator = conversationResponse.conversation.participant.isMod ?? await userIsMod(username, context);
+        const userIsModerator = conversationResponse.conversation.participant.isMod ?? await isModerator(context.reddit, subredditName, username);
         if (userIsModerator) {
             console.log(`${username} is a moderator of /r/${subredditName}, skipping`);
             return;

@@ -1,7 +1,7 @@
 When a user sends a modmail to a subreddit, this app replies to the modmail (visible to mods only) with a summary about the user including:
 
 * Account age
-* Account sitewide karma
+* Account karma (sitewide and subreddit-specific)
 * User flair
 * If the user is flagged as NSFW
 * Recent comment summary (subreddit name and comment count) in other subreddits
@@ -22,10 +22,6 @@ Any combination of the above options can be configured. If any of them return da
 
 ## Limitations
 
-On Desktop, Reddit always defaults to the last reply type used. This means that if a summary is generated, this will default to "Private moderator note". Unfortunately this is out of my control.
-
-The Developer Platform does not provide access to subreddit karma. If this ever changes, I will include it.
-
 If a user is shadowbanned, no useful information can be shown about the user. However, the app can tell you that the user is shadowbanned (not obvious on mobile modmail).
 
 ## Source Code and Licence
@@ -35,6 +31,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 ## Version History
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
+
+### v1.7.0
+
+* Add subreddit-specific karma to output. This is disabled by default but can be turned on if you wish.
 
 ### v1.6.9
 

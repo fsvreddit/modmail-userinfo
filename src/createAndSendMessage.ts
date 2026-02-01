@@ -54,7 +54,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
         // Retrieve all components, removing any blanks
         const allComponents: (json2md.DataObject | json2md.DataObject[] | undefined)[] = [
             getAccountAge(user, settings),
-            getAccountKarma(user, settings),
+            await getAccountKarma(user, settings, context),
             getAccountNSFW(user, settings),
         ];
 
