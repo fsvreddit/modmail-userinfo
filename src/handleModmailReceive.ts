@@ -7,7 +7,7 @@ import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { isModerator } from "devvit-helpers";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
-    if (!event.messageAuthor || event.messageAuthor.name === context.appName) {
+    if (!event.messageAuthor || event.messageAuthor.name === context.appSlug) {
         return;
     }
 

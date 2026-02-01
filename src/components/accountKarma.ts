@@ -1,7 +1,6 @@
 import { SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
 import json2md from "json2md";
 import { formatHeader } from "./componentHelpers.js";
-import { getExtendedDevvit } from "devvit-helpers";
 
 enum AccountKarmaSetting {
     EnableSitewideKarma = "enableAccountKarma",
@@ -22,7 +21,7 @@ export const settingsForAccountKarma: SettingsFormField = {
             name: AccountKarmaSetting.EnableLocalKarma,
             type: "boolean",
             label: "Include subreddit-specific karma in output",
-            defaultValue: true,
+            defaultValue: false,
         },
     ],
 };
@@ -35,9 +34,14 @@ export async function getAccountKarma (user: User, settings: SettingsValues, con
     }
 
     if (settings[AccountKarmaSetting.EnableLocalKarma]) {
-        const subKarmaResponse = await context.reddit.getUserKarmaFromCurrentSubreddit(user.username)
+        try {
+            const subKarmaResponse = await context.reddit.getUserKarmaFromCurrentSubreddit(user.username);
 
-        results.push({ p: `${formatHeader("Subreddit karma", settings)}: Post ${subKarmaResponse.fromPosts?.toLocaleString() ?? 0}, Comment ${subKarmaResponse.fromComments?.toLocaleString() ?? 0}` });
+            results.push({ p: `${formatHeader("Subreddit karma", settings)}: Post ${subKarmaResponse.fromPosts?.toLocaleString() ?? 0}, Comment ${subKarmaResponse.fromComments?.toLocaleString() ?? 0}` });
+        } catch (error) {
+            console.error("Error retrieving subreddit-specific karma:");
+            console.error(error);
+        }
     }
 
     if (results.length === 0) {

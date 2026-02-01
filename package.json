@@ -9,9 +9,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "0.12.7",
-    "@devvit/public-api": "0.12.7",
-    "@devvit/shared-types": "0.12.7",
+    "@devvit/protos": "0.12.10",
+    "@devvit/public-api": "0.12.10",
     "date-fns": "^4.0.0",
     "devvit-helpers": "^0.8.2",
     "json2md": "^2.0.3",
