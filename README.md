@@ -32,6 +32,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.7.1
+
+* Mitigate against duplicate actions if the Developer Platform is having issues
+
 ### v1.7.0
 
 * Add subreddit-specific karma to output. This is disabled by default but can be turned on if you wish.

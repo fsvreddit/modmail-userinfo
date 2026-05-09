@@ -1,26 +1,23 @@
 import { GetConversationResponse, ModMailConversationState, TriggerContext, User } from "@devvit/public-api";
 import { ModMail } from "@devvit/protos";
-import { addDays, addSeconds } from "date-fns";
+import { addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
 import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { isModerator } from "devvit-helpers";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (!event.messageAuthor || event.messageAuthor.name === context.appSlug) {
         return;
     }
 
-    const redisKey = `processed-${event.conversationId}`;
-    const alreadyProcessed = await context.redis.get(redisKey);
-    if (alreadyProcessed) {
+    if (await hasTriggerBeenHandled(context.redis, event.conversationId)) {
+        console.log("This modmail event has already been handled, skipping.");
         return;
     }
 
     console.log("Received a new modmail trigger event.");
-
-    // Make a note that we've processed this conversation
-    await context.redis.set(redisKey, new Date().getTime().toString(), { expiration: addDays(new Date(), 7) });
 
     let conversationResponse: GetConversationResponse;
     try {

@@ -1,7 +1,7 @@
 import { ModNote, RedditAPIClient, SettingsFormField, SettingsValues, TriggerContext, UserNoteLabel } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
 import { ToolboxClient, Usernote } from "toolbox-devvit";
-import { getPostOrCommentFromRedditId } from "../utility.js";
+import { getPostOrCommentById } from "@fsvreddit/fsv-devvit-helpers";
 import _ from "lodash";
 import markdownEscape from "markdown-escape";
 import json2md from "json2md";
@@ -117,7 +117,7 @@ async function getUserNoteFromRedditModNote (reddit: RedditAPIClient, modNote: M
         return;
     }
 
-    const noteTarget = await getPostOrCommentFromRedditId(reddit, modNote.userNote.redditId);
+    const noteTarget = modNote.userNote.redditId ? await getPostOrCommentById(reddit, modNote.userNote.redditId) : undefined;
 
     return {
         noteSource: "Reddit",
@@ -163,7 +163,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
         const config = await toolbox.getConfig(subredditName);
         const noteTypes = _.fromPairs(config.getAllNoteTypes().map(item => [item.key, item.text]));
 
-        const results = userNotes.map(userNote => ({
+        const results: CombinedUserNote[] = userNotes.map(userNote => ({
             noteSource: "Toolbox",
             moderatorUsername: userNote.moderatorUsername,
             text: userNote.text,
@@ -171,7 +171,7 @@ async function getToolboxNotesAsUserNotes (reddit: RedditAPIClient, subredditNam
             username: userNote.username,
             contextPermalink: userNote.contextPermalink,
             noteType: userNote.noteType ? noteTypes[userNote.noteType] : undefined,
-        }) as CombinedUserNote);
+        }));
 
         return results;
     } catch {

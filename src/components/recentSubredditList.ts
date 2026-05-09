@@ -98,7 +98,7 @@ export async function getRecentSubreddits (recentComments: Comment[], settings: 
     }
 
     const countedSubs = _.countBy(recentComments.slice(0, numberOfCommentsToCheck).map(x => x.subredditName));
-    const subCommentCounts = _.toPairs(countedSubs).map(([subName, commentCount]) => ({ subName, commentCount } as SubCommentCount));
+    const subCommentCounts: SubCommentCount[] = _.toPairs(countedSubs).map(([subName, commentCount]) => ({ subName, commentCount }));
 
     // Filter comment list for subreddits for visibility. This is because we don't want to show counts for private subreddits
     // that this app might be installed in, but that an average person wouldn't necessarily know of. We want to protect users'
