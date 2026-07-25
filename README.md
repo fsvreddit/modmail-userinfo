@@ -41,6 +41,7 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 * Add option to include recent mod log entries in output
 * Add option to include the user's top posts by karma in the output
 * Add option to exclude users with configured flairs
+* Add option to include the proportion of self comments (comments on a user's own post) in the output
 * Prevent duplicate messages from sending due to a rare issue on the Dev Platform
 * Add !usersummary command
 

@@ -18,6 +18,7 @@ import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 import { addHours } from "date-fns";
 import { getModLogEntries } from "./components/modLog.js";
 import { getTopPostsByKarma } from "./components/topPostsByKarma.js";
+import { getProportionOfSelfComments } from "./components/proportionOfSelfComments.js";
 
 function splitMessage (message: string, maxLength = 10000): string[] {
     const messages: string[] = [];
@@ -92,6 +93,7 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
             getRecentSubreddits(userComments, settings, context),
             getRecentSubredditCommentCount(userComments, settings, context),
             getRecentSubredditPostCount(username, settings, context),
+            getProportionOfSelfComments(userComments, settings, context),
             getRecentComments(userComments, settings, context),
             getRecentPosts(user.username, settings, context),
             getModNotes(user.username, settings, context),
