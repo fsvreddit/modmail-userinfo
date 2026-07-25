@@ -6,14 +6,15 @@ import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { isModerator } from "devvit-helpers";
 import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { SchedulerJob } from "./scheduler.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (!event.messageAuthor || event.messageAuthor.name === context.appSlug) {
         return;
     }
 
-    if (await hasTriggerBeenHandled(context.redis, event.conversationId)) {
-        console.log("This modmail event has already been handled, skipping.");
+    if (await hasTriggerBeenHandled(context.redis, event.messageId)) {
+        console.warn("This modmail event has already been handled, skipping.");
         return;
     }
 
@@ -54,15 +55,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    // Check that the first message in the entire conversation was for this person
-    if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
-        console.log("Message isn't the very first. Quitting");
-        return;
-    }
-
-    // Check to see if conversation is already archived e.g. from a ban message
-    const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
-
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
     let user: User | undefined;
     try {
@@ -75,15 +67,28 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         console.log(`User ${username} could not be resolved. Likely shadowbanned or suspended.`);
     }
 
-    let subredditName: string;
-    if (event.conversationSubreddit) {
-        subredditName = event.conversationSubreddit.name;
-    } else {
-        // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit
-        subredditName = await context.reddit.getCurrentSubredditName();
+    const settings = await context.settings.getAll();
+
+    const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
+    const currentMessage = messagesInConversation.find(message => message.id && event.messageId.includes(message.id));
+    if (currentMessage?.bodyMarkdown?.includes("!usersummary") && settings[GeneralSetting.EnableUserSummaryCommand]) {
+        if (await isModerator(context.reddit, subredditName, event.messageAuthor.name)) {
+            console.log("Received !usersummary command from a moderator, sending summary.");
+            await createAndSendSummaryModmail(context, username, user, event.conversationId);
+            return;
+        } else {
+            console.log("Received !usersummary command from a non-moderator, ignoring.");
+        }
     }
 
-    const settings = await context.settings.getAll();
+    // Check that the first message in the entire conversation was for this person
+    if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
+        console.log("Message isn't the very first. Quitting");
+        return;
+    }
+
+    // Check to see if conversation is already archived e.g. from a ban message
+    const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
     if (!(settings[GeneralSetting.CreateSummaryOnOutgoingMessages] ?? true) && username !== event.messageAuthor.name) {
         console.log("Outgoing modmail. Skipping summary creation.");
@@ -115,16 +120,29 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
+    if (settings[GeneralSetting.ExcludeUsersByFlair]) {
+        const flairs = settings[GeneralSetting.ExcludeUsersByFlair] as string | undefined ?? "";
+        const flairsToIgnore = flairs.split("\n").map(x => x.trim().toLowerCase()).filter(x => x.length > 0);
+        const userFlair = await user?.getUserFlairBySubreddit(subredditName);
+        if (userFlair?.flairText) {
+            if (flairsToIgnore.includes(userFlair.flairText.toLowerCase())) {
+                console.log(`User /u/${username} has a flair that is on the ignore list, skipping`);
+                return;
+            }
+        }
+    }
+
     const delaySendAfterBan = settings[GeneralSetting.DelaySendAfterBan] as boolean | undefined ?? false;
     const delaySendAfterOtherModmails = settings[GeneralSetting.DelaySendAfterIncomingModmails] as boolean | undefined ?? false;
 
     if ((conversationIsArchived && delaySendAfterBan) || (!conversationIsArchived && delaySendAfterOtherModmails)) {
         console.log("Queueing message to send 10 seconds from now.");
         await context.scheduler.runJob({
-            name: "sendDelayedSummary",
+            name: SchedulerJob.SendDelayedSummary,
             data: {
                 conversationId: event.conversationId,
                 subredditName,
+                jobGuid: crypto.randomUUID(),
             },
             runAt: addSeconds(new Date(), 10),
         });

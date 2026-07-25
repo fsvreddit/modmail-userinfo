@@ -12,8 +12,16 @@ export function selectFieldHasOptionChosen (event: SettingsFormFieldValidatorEve
     }
 }
 
-export function numericFieldBetween (value: number | undefined, min: number, max: number) {
-    if (value && (value < min || value > max)) {
+export function numericFieldBetween (value: number | undefined, min: number, max = 9999) {
+    if (value === undefined) {
+        return;
+    }
+
+    if (value < min && max === 9999) {
+        return `Value must be greater than or equal to ${min}`;
+    }
+
+    if (value < min || value > max) {
         return `Value must be between ${min} and ${max}`;
     }
 }

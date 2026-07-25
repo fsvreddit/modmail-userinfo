@@ -1,7 +1,8 @@
 import { Devvit } from "@devvit/public-api";
 import { sendDelayedSummary } from "./createAndSendMessage.js";
+import { SchedulerJob } from "./scheduler.js";
 import { generalSettings } from "./settings.js";
-import { checkIfAppIsWorking, MONITORING_JOB_NAME, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
+import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
 import { settingsForUserFlair } from "./components/accountFlair.js";
 import { settingsForRecentSubreddits } from "./components/recentSubredditList.js";
 import { settingsForRecentComments } from "./components/recentComments.js";
@@ -15,6 +16,9 @@ import { onModmailReceiveEvent } from "./handleModmailReceive.js";
 import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 import { settingsForSocialLinks } from "./components/socialLinks.js";
 import { settingsForBioText } from "./components/accountBioText.js";
+import { settingsForModLog } from "./components/modLog.js";
+import { settingsForTopPostsByKarma } from "./components/topPostsByKarma.js";
+import { settingsForProportionOfSelfComments } from "./components/proportionOfSelfComments.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
@@ -25,9 +29,12 @@ Devvit.addSettings([
     settingsForSocialLinks,
     settingsForRecentSubreddits,
     settingsForRecentSubredditComments,
+    settingsForProportionOfSelfComments,
     settingsForRecentComments,
     settingsForRecentPosts,
     settingsForModNotes,
+    settingsForModLog,
+    settingsForTopPostsByKarma,
     settingsForShadowbanCheck,
     generalSettings,
     ...settingsForMonitoring,
@@ -44,12 +51,12 @@ Devvit.addTrigger({
 });
 
 Devvit.addSchedulerJob({
-    name: "sendDelayedSummary",
+    name: SchedulerJob.SendDelayedSummary,
     onRun: sendDelayedSummary,
 });
 
 Devvit.addSchedulerJob({
-    name: MONITORING_JOB_NAME,
+    name: SchedulerJob.MonitoringJob,
     onRun: checkIfAppIsWorking,
 });
 

@@ -13,3 +13,8 @@ export function formatHeader (header: string, settings: SettingsValues): string 
             return `**${header}**`;
     }
 }
+
+export function formatDate (date: Date, settings: SettingsValues): string {
+    const [locale] = settings[GeneralSetting.LocaleForDateOutput] as string[] | undefined ?? ["en-US"];
+    return date.toLocaleDateString(locale);
+}

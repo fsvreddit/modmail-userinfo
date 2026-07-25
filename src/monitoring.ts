@@ -1,6 +1,7 @@
 import { JobContext, SettingsFormField, TriggerContext } from "@devvit/public-api";
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { formatDistanceToNow } from "date-fns";
+import { SchedulerJob } from "./scheduler.js";
 
 export enum MonitoringSetting {
     MonitoringSubreddit = "monitoringSubreddit",
@@ -22,8 +23,6 @@ export const settingsForMonitoring: SettingsFormField[] = [
         scope: "app",
     },
 ];
-
-export const MONITORING_JOB_NAME = "checkIfAppIsWorking";
 
 export async function checkIfAppIsWorking (_: unknown, context: JobContext) {
     const subredditName = await context.reddit.getCurrentSubredditName();
@@ -108,7 +107,7 @@ export async function scheduleJobs (context: TriggerContext | JobContext, conver
     const currentJobs = await context.scheduler.listJobs();
 
     // Remove any scheduled monitoring jobs
-    const monitoringJobs = currentJobs.filter(job => job.name === MONITORING_JOB_NAME);
+    const monitoringJobs = currentJobs.filter(job => job.name === SchedulerJob.MonitoringJob as string);
     if (monitoringJobs.length > 0) {
         await Promise.all(monitoringJobs.map(job => context.scheduler.cancelJob(job.id)));
         console.log("Scheduler: Removed existing jobs.");
@@ -126,7 +125,7 @@ export async function scheduleJobs (context: TriggerContext | JobContext, conver
     }
 
     await context.scheduler.runJob({
-        name: MONITORING_JOB_NAME,
+        name: SchedulerJob.MonitoringJob,
         cron: "*/30 * * * *", // Every half hour
     });
 

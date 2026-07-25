@@ -14,6 +14,30 @@ import { getUserShadowbanText } from "./components/shadowbanInfo.js";
 import json2md from "json2md";
 import { getUserSocialLinks } from "./components/socialLinks.js";
 import { getUserBioText } from "./components/accountBioText.js";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { addHours } from "date-fns";
+import { getModLogEntries } from "./components/modLog.js";
+import { getTopPostsByKarma } from "./components/topPostsByKarma.js";
+import { getProportionOfSelfComments } from "./components/proportionOfSelfComments.js";
+
+function splitMessage (message: string, maxLength = 10000): string[] {
+    const messages: string[] = [];
+    let currentMessage = "";
+
+    for (const line of message.split("\n")) {
+        if ((currentMessage + line + "\n").length > maxLength) {
+            messages.push(currentMessage);
+            currentMessage = "";
+        }
+        currentMessage += line + "\n";
+    }
+
+    if (currentMessage.length > 0) {
+        messages.push(currentMessage);
+    }
+
+    return messages;
+}
 
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
@@ -22,11 +46,15 @@ export async function createAndSendSummaryModmail (context: TriggerContext, user
         return false;
     }
 
-    await context.reddit.modMail.reply({
-        body: modmailMessage,
-        conversationId,
-        isInternal: true,
-    });
+    const splitMessages = splitMessage(modmailMessage);
+
+    for (const message of splitMessages) {
+        await context.reddit.modMail.reply({
+            body: message,
+            conversationId,
+            isInternal: true,
+        });
+    }
 
     console.log(`Summary sent for ${username}`);
 
@@ -65,9 +93,12 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
             getRecentSubreddits(userComments, settings, context),
             getRecentSubredditCommentCount(userComments, settings, context),
             getRecentSubredditPostCount(username, settings, context),
+            getProportionOfSelfComments(userComments, settings, context),
             getRecentComments(userComments, settings, context),
             getRecentPosts(user.username, settings, context),
             getModNotes(user.username, settings, context),
+            getModLogEntries(user, settings, context),
+            getTopPostsByKarma(user.username, settings, context),
         ]));
 
         components = compact(allComponents).flat();
@@ -89,6 +120,13 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
 }
 
 export async function sendDelayedSummary (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `job:${jobGuid}`, { expiration: addHours(new Date(), 1) })) {
+        console.log(`Job ${jobGuid} has already been handled, skipping.`);
+        return;
+    }
+
     const conversationId = event.data?.conversationId as string | undefined;
     if (!conversationId) {
         return;

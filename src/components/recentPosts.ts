@@ -1,6 +1,6 @@
 import { SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 import { GeneralSetting } from "../settings.js";
-import { IncludeRecentContentOption, selectFieldHasOptionChosen } from "../settingsHelpers.js";
+import { IncludeRecentContentOption, numericFieldBetween, selectFieldHasOptionChosen } from "../settingsHelpers.js";
 import markdownEscape from "markdown-escape";
 import json2md from "json2md";
 import { formatHeader } from "./componentHelpers.js";
@@ -39,6 +39,7 @@ export const settingsForRecentPosts: SettingsFormField = {
             name: RecentPostsSetting.NumberOfPostsToInclude,
             label: "Number of recent posts to show in summary",
             defaultValue: 3,
+            onValidate: ({ value }) => numericFieldBetween(value, 1),
         },
     ],
 };

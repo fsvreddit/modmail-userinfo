@@ -9,9 +9,11 @@ export enum GeneralSetting {
     CreateSummaryOnOutgoingMessages = "createSummaryOutgoing",
     CreateSummaryForModerators = "createSummaryForModerators",
     CreateSummaryForAdmins = "createSummaryForAdmins",
+    ExcludeUsersByFlair = "excludeUsersByFlair",
     UsernamesToIgnore = "usernamesToIgnore",
     LocaleForDateOutput = "localeForDateOutput",
     HeadingFormatting = "headingFormatting",
+    EnableUserSummaryCommand = "enableUserSummaryCommand",
 }
 
 export enum HeadingFormatting {
@@ -71,6 +73,13 @@ export const generalSettings: SettingsFormField = {
             defaultValue: false,
         },
         {
+            type: "paragraph",
+            name: GeneralSetting.ExcludeUsersByFlair,
+            label: "Do not create summaries for users with these flairs",
+            helpText: "One per line, not case sensitive. Leave blank to disable.",
+            defaultValue: "",
+        },
+        {
             type: "string",
             name: GeneralSetting.UsernamesToIgnore,
             label: "Do not create summaries for these users",
@@ -102,6 +111,13 @@ export const generalSettings: SettingsFormField = {
             defaultValue: [HeadingFormatting.Bold],
             multiSelect: false,
             onValidate: selectFieldHasOptionChosen,
+        },
+        {
+            type: "boolean",
+            name: GeneralSetting.EnableUserSummaryCommand,
+            label: "Enable !usersummary command",
+            helpText: "This command can be used in modmail to generate a summary on demand for a user, e.g. if some time has passed since the initial summary was generated.",
+            defaultValue: true,
         },
     ],
 };
