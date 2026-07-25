@@ -18,6 +18,25 @@ import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 import { addHours } from "date-fns";
 import { getModLogEntries } from "./components/modLog.js";
 
+function splitMessage (message: string, maxLength = 10000): string[] {
+    const messages: string[] = [];
+    let currentMessage = "";
+
+    for (const line of message.split("\n")) {
+        if ((currentMessage + line + "\n").length > maxLength) {
+            messages.push(currentMessage);
+            currentMessage = "";
+        }
+        currentMessage += line + "\n";
+    }
+
+    if (currentMessage.length > 0) {
+        messages.push(currentMessage);
+    }
+
+    return messages;
+}
+
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
     if (!modmailMessage) {
@@ -25,11 +44,15 @@ export async function createAndSendSummaryModmail (context: TriggerContext, user
         return false;
     }
 
-    await context.reddit.modMail.reply({
-        body: modmailMessage,
-        conversationId,
-        isInternal: true,
-    });
+    const splitMessages = splitMessage(modmailMessage);
+
+    for (const message of splitMessages) {
+        await context.reddit.modMail.reply({
+            body: message,
+            conversationId,
+            isInternal: true,
+        });
+    }
 
     console.log(`Summary sent for ${username}`);
 
