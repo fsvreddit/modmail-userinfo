@@ -9,6 +9,8 @@ When a user sends a modmail to a subreddit, this app replies to the modmail (vis
 * Recently removed comments in the current subreddit
 * Recent subreddit posts
 * Toolbox usernotes or Reddit native mod notes
+* The user's top posts by karma anywhere on Reddit
+* The user's most recent mod log entries
 
 Any combination of the above options can be configured. If any of them return data, then a summary will be generated.
 
@@ -28,7 +30,7 @@ If a user is shadowbanned, no useful information can be shown about the user. Ho
 
 ## Source Code and Licence
 
-This app is open source. You can find the code on GitHub [here](https://github.com/fsvreddit/modmail-userinfo).
+This app is open source. [You can find the code on GitHub here](https://github.com/fsvreddit/modmail-userinfo).
 
 ## Version History
 
@@ -38,6 +40,7 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 
 * Add option to include recent mod log entries in output
 * Add option to include the user's top posts by karma in the output
+* Add option to exclude users with configured flairs
 * Prevent duplicate messages from sending due to a rare issue on the Dev Platform
 * Add !usersummary command
 

@@ -9,6 +9,7 @@ export enum GeneralSetting {
     CreateSummaryOnOutgoingMessages = "createSummaryOutgoing",
     CreateSummaryForModerators = "createSummaryForModerators",
     CreateSummaryForAdmins = "createSummaryForAdmins",
+    ExcludeUsersByFlair = "excludeUsersByFlair",
     UsernamesToIgnore = "usernamesToIgnore",
     LocaleForDateOutput = "localeForDateOutput",
     HeadingFormatting = "headingFormatting",
@@ -70,6 +71,13 @@ export const generalSettings: SettingsFormField = {
             name: GeneralSetting.CreateSummaryForAdmins,
             label: "Create modmail summary when receiving modmail from admins",
             defaultValue: false,
+        },
+        {
+            type: "paragraph",
+            name: GeneralSetting.ExcludeUsersByFlair,
+            label: "Do not create summaries for users with these flairs",
+            helpText: "One per line, not case sensitive. Leave blank to disable.",
+            defaultValue: "",
         },
         {
             type: "string",

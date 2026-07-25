@@ -120,6 +120,18 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
+    if (settings[GeneralSetting.ExcludeUsersByFlair]) {
+        const flairs = settings[GeneralSetting.ExcludeUsersByFlair] as string | undefined ?? "";
+        const flairsToIgnore = flairs.split("\n").map(x => x.trim().toLowerCase()).filter(x => x.length > 0);
+        const userFlair = await user?.getUserFlairBySubreddit(subredditName);
+        if (userFlair?.flairText) {
+            if (flairsToIgnore.includes(userFlair.flairText.toLowerCase())) {
+                console.log(`User /u/${username} has a flair that is on the ignore list, skipping`);
+                return;
+            }
+        }
+    }
+
     const delaySendAfterBan = settings[GeneralSetting.DelaySendAfterBan] as boolean | undefined ?? false;
     const delaySendAfterOtherModmails = settings[GeneralSetting.DelaySendAfterIncomingModmails] as boolean | undefined ?? false;
 
