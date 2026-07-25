@@ -16,6 +16,7 @@ import { getUserSocialLinks } from "./components/socialLinks.js";
 import { getUserBioText } from "./components/accountBioText.js";
 import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 import { addHours } from "date-fns";
+import { getModLogEntries } from "./components/modLog.js";
 
 export async function createAndSendSummaryModmail (context: TriggerContext, username: string, user: User | undefined, conversationId: string): Promise<boolean> {
     const modmailMessage = await createUserSummaryModmail(context, username, user);
@@ -71,6 +72,8 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
             getRecentPosts(user.username, settings, context),
             getModNotes(user.username, settings, context),
         ]));
+
+        allComponents.push(await getModLogEntries(user, settings, context));
 
         components = compact(allComponents).flat();
     } else {

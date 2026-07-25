@@ -16,6 +16,7 @@ import { onModmailReceiveEvent } from "./handleModmailReceive.js";
 import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 import { settingsForSocialLinks } from "./components/socialLinks.js";
 import { settingsForBioText } from "./components/accountBioText.js";
+import { settingsForModLog } from "./components/modLog.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
@@ -29,6 +30,7 @@ Devvit.addSettings([
     settingsForRecentComments,
     settingsForRecentPosts,
     settingsForModNotes,
+    settingsForModLog,
     settingsForShadowbanCheck,
     generalSettings,
     ...settingsForMonitoring,

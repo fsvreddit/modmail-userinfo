@@ -12,6 +12,7 @@ export enum GeneralSetting {
     UsernamesToIgnore = "usernamesToIgnore",
     LocaleForDateOutput = "localeForDateOutput",
     HeadingFormatting = "headingFormatting",
+    EnableUserSummaryCommand = "enableUserSummaryCommand",
 }
 
 export enum HeadingFormatting {
@@ -102,6 +103,13 @@ export const generalSettings: SettingsFormField = {
             defaultValue: [HeadingFormatting.Bold],
             multiSelect: false,
             onValidate: selectFieldHasOptionChosen,
+        },
+        {
+            type: "boolean",
+            name: GeneralSetting.EnableUserSummaryCommand,
+            label: "Enable !usersummary command",
+            helpText: "This command can be used in modmail to generate a summary on demand for a user, e.g. if some time has passed since the initial summary was generated.",
+            defaultValue: true,
         },
     ],
 };

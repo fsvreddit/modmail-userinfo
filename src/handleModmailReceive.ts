@@ -13,7 +13,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    if (await hasTriggerBeenHandled(context.redis, event.conversationId)) {
+    if (await hasTriggerBeenHandled(context.redis, event.messageId)) {
         console.warn("This modmail event has already been handled, skipping.");
         return;
     }
@@ -67,9 +67,11 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         console.log(`User ${username} could not be resolved. Likely shadowbanned or suspended.`);
     }
 
+    const settings = await context.settings.getAll();
+
     const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
     const currentMessage = messagesInConversation.find(message => message.id && event.messageId.includes(message.id));
-    if (currentMessage?.bodyMarkdown?.includes("!usersummary")) {
+    if (currentMessage?.bodyMarkdown?.includes("!usersummary") && settings[GeneralSetting.EnableUserSummaryCommand]) {
         if (await isModerator(context.reddit, subredditName, event.messageAuthor.name)) {
             console.log("Received !usersummary command from a moderator, sending summary.");
             await createAndSendSummaryModmail(context, username, user, event.conversationId);
@@ -87,8 +89,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
 
     // Check to see if conversation is already archived e.g. from a ban message
     const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
-
-    const settings = await context.settings.getAll();
 
     if (!(settings[GeneralSetting.CreateSummaryOnOutgoingMessages] ?? true) && username !== event.messageAuthor.name) {
         console.log("Outgoing modmail. Skipping summary creation.");
