@@ -55,15 +55,6 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    // Check that the first message in the entire conversation was for this person
-    if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
-        console.log("Message isn't the very first. Quitting");
-        return;
-    }
-
-    // Check to see if conversation is already archived e.g. from a ban message
-    const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
-
     // Get the details of the user who is the "participant" (i.e. the subject of the modmail, even if they aren't the OP)
     let user: User | undefined;
     try {
@@ -76,13 +67,26 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         console.log(`User ${username} could not be resolved. Likely shadowbanned or suspended.`);
     }
 
-    let subredditName: string;
-    if (event.conversationSubreddit) {
-        subredditName = event.conversationSubreddit.name;
-    } else {
-        // Very unlikely that this case will occur except for sub2sub modmail, in which case we should have already quit
-        subredditName = await context.reddit.getCurrentSubredditName();
+    const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
+    const currentMessage = messagesInConversation.find(message => message.id && event.messageId.includes(message.id));
+    if (currentMessage?.bodyMarkdown?.includes("!usersummary")) {
+        if (await isModerator(context.reddit, subredditName, event.messageAuthor.name)) {
+            console.log("Received !usersummary command from a moderator, sending summary.");
+            await createAndSendSummaryModmail(context, username, user, event.conversationId);
+            return;
+        } else {
+            console.log("Received !usersummary command from a non-moderator, ignoring.");
+        }
     }
+
+    // Check that the first message in the entire conversation was for this person
+    if (!firstMessage.id || !event.messageId.includes(firstMessage.id)) {
+        console.log("Message isn't the very first. Quitting");
+        return;
+    }
+
+    // Check to see if conversation is already archived e.g. from a ban message
+    const conversationIsArchived = conversationResponse.conversation.state === ModMailConversationState.Archived;
 
     const settings = await context.settings.getAll();
 

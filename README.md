@@ -20,6 +20,8 @@ Any combination of the above options can be configured. If any of them return da
 
 ![Example modmail output](https://raw.githubusercontent.com/fsvreddit/modmail-userinfo/main/doc_images/examplesummary.png)
 
+Summaries can also be triggered manually by making a private mod note with the text `!usersummary` in them. This is useful in case you want to re-trigger a summary after a period of time (thanks u/Forgotten_Dog1954 for the idea)
+
 ## Limitations
 
 If a user is shadowbanned, no useful information can be shown about the user. However, the app can tell you that the user is shadowbanned (not obvious on mobile modmail).
@@ -35,6 +37,7 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 ### v1.8.0
 
 * Prevent duplicate messages from sending due to a rare issue on the Dev Platform
+* Add !usersummary command
 
 ### v1.7.1
 
