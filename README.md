@@ -32,6 +32,10 @@ This app is open source. You can find the code on GitHub [here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.8.0
+
+* Prevent duplicate messages from sending
+
 ### v1.7.1
 
 * Mitigate against duplicate actions if the Developer Platform is having issues

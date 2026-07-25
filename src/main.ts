@@ -1,7 +1,8 @@
 import { Devvit } from "@devvit/public-api";
 import { sendDelayedSummary } from "./createAndSendMessage.js";
+import { SchedulerJob } from "./scheduler.js";
 import { generalSettings } from "./settings.js";
-import { checkIfAppIsWorking, MONITORING_JOB_NAME, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
+import { checkIfAppIsWorking, scheduleJobOnAppUpgradeOrInstall, settingsForMonitoring } from "./monitoring.js";
 import { settingsForUserFlair } from "./components/accountFlair.js";
 import { settingsForRecentSubreddits } from "./components/recentSubredditList.js";
 import { settingsForRecentComments } from "./components/recentComments.js";
@@ -44,12 +45,12 @@ Devvit.addTrigger({
 });
 
 Devvit.addSchedulerJob({
-    name: "sendDelayedSummary",
+    name: SchedulerJob.SendDelayedSummary,
     onRun: sendDelayedSummary,
 });
 
 Devvit.addSchedulerJob({
-    name: MONITORING_JOB_NAME,
+    name: SchedulerJob.MonitoringJob,
     onRun: checkIfAppIsWorking,
 });
 
