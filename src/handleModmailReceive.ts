@@ -6,6 +6,7 @@ import { MonitoringSetting, scheduleJobs } from "./monitoring.js";
 import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { isModerator } from "devvit-helpers";
 import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { SchedulerJob } from "./scheduler.js";
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (!event.messageAuthor || event.messageAuthor.name === context.appSlug) {
@@ -13,7 +14,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     }
 
     if (await hasTriggerBeenHandled(context.redis, event.conversationId)) {
-        console.log("This modmail event has already been handled, skipping.");
+        console.warn("This modmail event has already been handled, skipping.");
         return;
     }
 
@@ -121,10 +122,11 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
     if ((conversationIsArchived && delaySendAfterBan) || (!conversationIsArchived && delaySendAfterOtherModmails)) {
         console.log("Queueing message to send 10 seconds from now.");
         await context.scheduler.runJob({
-            name: "sendDelayedSummary",
+            name: SchedulerJob.SendDelayedSummary,
             data: {
                 conversationId: event.conversationId,
                 subredditName,
+                jobGuid: crypto.randomUUID(),
             },
             runAt: addSeconds(new Date(), 10),
         });
