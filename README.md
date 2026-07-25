@@ -36,6 +36,7 @@ For earlier versions, please see the [full changelog](https://github.com/fsvredd
 
 ### v1.8.0
 
+* Add option to include recent mod log entries in output
 * Prevent duplicate messages from sending due to a rare issue on the Dev Platform
 * Add !usersummary command
 
