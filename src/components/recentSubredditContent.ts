@@ -3,6 +3,7 @@ import { differenceInDays, subDays } from "date-fns";
 import json2md from "json2md";
 import pluralize from "pluralize";
 import { formatHeader } from "./componentHelpers.js";
+import { numericFieldBetween } from "../settingsHelpers.js";
 
 enum RecentSubredditCommentSetting {
     EnableCommentCount = "enableRecentSubredditComments",
@@ -32,6 +33,7 @@ export const settingsForRecentSubredditComments: SettingsFormField = {
             label: "How many days to include data for",
             helpText: "Note: This app can only look back on the user's most recent 1000 posts or comments.",
             defaultValue: 28,
+            onValidate: ({ value }) => numericFieldBetween(value, 1),
         },
     ],
 };

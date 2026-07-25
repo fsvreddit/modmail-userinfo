@@ -17,6 +17,7 @@ import { settingsForShadowbanCheck } from "./components/shadowbanInfo.js";
 import { settingsForSocialLinks } from "./components/socialLinks.js";
 import { settingsForBioText } from "./components/accountBioText.js";
 import { settingsForModLog } from "./components/modLog.js";
+import { settingsForTopPostsByKarma } from "./components/topPostsByKarma.js";
 
 Devvit.addSettings([
     settingsForAccountAge,
@@ -31,6 +32,7 @@ Devvit.addSettings([
     settingsForRecentPosts,
     settingsForModNotes,
     settingsForModLog,
+    settingsForTopPostsByKarma,
     settingsForShadowbanCheck,
     generalSettings,
     ...settingsForMonitoring,

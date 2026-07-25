@@ -17,6 +17,7 @@ import { getUserBioText } from "./components/accountBioText.js";
 import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 import { addHours } from "date-fns";
 import { getModLogEntries } from "./components/modLog.js";
+import { getTopPostsByKarma } from "./components/topPostsByKarma.js";
 
 function splitMessage (message: string, maxLength = 10000): string[] {
     const messages: string[] = [];
@@ -94,9 +95,9 @@ export async function createUserSummaryModmail (context: TriggerContext, usernam
             getRecentComments(userComments, settings, context),
             getRecentPosts(user.username, settings, context),
             getModNotes(user.username, settings, context),
+            getModLogEntries(user, settings, context),
+            getTopPostsByKarma(user.username, settings, context),
         ]));
-
-        allComponents.push(await getModLogEntries(user, settings, context));
 
         components = compact(allComponents).flat();
     } else {

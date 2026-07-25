@@ -1,8 +1,8 @@
 import { ModNote, SettingsFormField, SettingsValues, TriggerContext, User } from "@devvit/public-api";
-import { format } from "date-fns";
 import json2md from "json2md";
-import { formatHeader } from "./componentHelpers.js";
+import { formatDate, formatHeader } from "./componentHelpers.js";
 import { isT3ID, isT5ID, T1ID, T3ID, T5ID } from "@devvit/public-api/types/tid.js";
+import { numericFieldBetween } from "../settingsHelpers.js";
 
 enum ModLogSetting {
     EnableOption = "enableModLog",
@@ -24,11 +24,12 @@ export const settingsForModLog: SettingsFormField = {
             type: "number",
             label: "Number of mod log entries to include",
             defaultValue: 5,
+            onValidate: ({ value }) => numericFieldBetween(value, 1, 10),
         },
     ],
 };
 
-async function formatModLogEntry (entry: ModNote, context: TriggerContext): Promise<string | undefined> {
+async function formatModLogEntry (entry: ModNote, context: TriggerContext, settings: SettingsValues): Promise<string | undefined> {
     let action: string;
     let target: T1ID | T3ID | T5ID | undefined;
     switch (entry.type) {
@@ -73,7 +74,7 @@ async function formatModLogEntry (entry: ModNote, context: TriggerContext): Prom
         }
     }
 
-    return `${format(entry.createdAt, "yyyy-MM-dd HH:mm")} UTC - ${action}`;
+    return `${formatDate(entry.createdAt, settings)} UTC - ${action}`;
 }
 
 export async function getModLogEntries (user: User, settings: SettingsValues, context: TriggerContext): Promise<json2md.DataObject | undefined> {
@@ -101,7 +102,7 @@ export async function getModLogEntries (user: User, settings: SettingsValues, co
             break;
         }
 
-        const formattedEntry = await formatModLogEntry(entry, context);
+        const formattedEntry = await formatModLogEntry(entry, context, settings);
         if (formattedEntry) {
             entries.push(formattedEntry);
         }
