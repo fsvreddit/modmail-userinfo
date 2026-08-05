@@ -36,6 +36,10 @@ This app is open source. [You can find the code on GitHub here](https://github.c
 
 For earlier versions, please see the [full changelog](https://github.com/fsvreddit/modmail-userinfo/blob/main/changelog.md).
 
+### v1.8.1
+
+* Prevent a rare situation where a summary may send automatically in response to a later message in the conversation
+
 ### v1.8.0
 
 * Add option to include recent mod log entries in output

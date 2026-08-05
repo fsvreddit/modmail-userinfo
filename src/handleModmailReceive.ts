@@ -1,4 +1,4 @@
-import { GetConversationResponse, ModMailConversationState, TriggerContext, User } from "@devvit/public-api";
+import { ConversationData, GetConversationResponse, MessageData, ModMailConversationState, TriggerContext, User } from "@devvit/public-api";
 import { ModMail } from "@devvit/protos";
 import { addSeconds } from "date-fns";
 import { GeneralSetting } from "./settings.js";
@@ -7,6 +7,14 @@ import { createAndSendSummaryModmail } from "./createAndSendMessage.js";
 import { isModerator } from "devvit-helpers";
 import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 import { SchedulerJob } from "./scheduler.js";
+
+function getSortedMessages (conversation: ConversationData): MessageData[] {
+    return Object.values(conversation.messages).sort((a, b) => {
+        const dateA = new Date(a.date ?? Date.now());
+        const dateB = new Date(b.date ?? Date.now());
+        return dateA.getTime() - dateB.getTime();
+    });
+}
 
 export async function onModmailReceiveEvent (event: ModMail, context: TriggerContext) {
     if (!event.messageAuthor || event.messageAuthor.name === context.appSlug) {
@@ -35,7 +43,7 @@ export async function onModmailReceiveEvent (event: ModMail, context: TriggerCon
         return;
     }
 
-    const messagesInConversation = Object.values(conversationResponse.conversation.messages);
+    const messagesInConversation = getSortedMessages(conversationResponse.conversation);
 
     const firstMessage = messagesInConversation[0];
 
